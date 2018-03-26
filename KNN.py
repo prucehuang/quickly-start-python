@@ -25,17 +25,17 @@ def classify0(inx, dataSet, labels, k):
     sqDistances = sqDiffMat.sum(axis=1)
     # 开根号
     distances = sqDistances**0.5
-
+    # 将距离从小到大排序，返回排好序的数组下标
     sortedDistIndicies = distances.argsort()
-    classCount = {}
 
-    # TOP K
+    # TOP K，统计分类出现的次数
+    classCount = {}
     for i in range(k):
         voteIlable = labels[sortedDistIndicies[i]]
         classCount[voteIlable] = classCount.get(voteIlable, 0) + 1
-
+    # 降序 http://www.runoob.com/python/python-func-sorted.html
     sortedClassCount = sorted(classCount.iteritems(), key=operator.itemgetter(1), reverse=True)
-
+    print sortedClassCount
     return sortedClassCount[0][0]
 
 group, labels = createDateSet()
