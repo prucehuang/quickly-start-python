@@ -5,6 +5,40 @@ from numpy import *
 import operator
 
 def createDateSet():
-	group = array([[1,0,1,1], [1,0,1,0], [0,0], [0,0,1]])
+	group = array([[1,0,1,1], [1,0,1,0], [0,0,0,0], [0,0,1,0]])
 	labels = ['A', 'A', 'B', 'B']
 	return group, labels
+
+def classify0(inx, dataSet, labels, k):
+    # shape 获得矩阵的行列数(行数，列数)
+    dataSetSize = dataSet.shape[0]
+
+    # tile 会将前面的inx矩阵放大(m,n)倍 例如：
+    # >>> b = [1, 3, 5]
+    # >>> tile(b, [2, 3])
+    # array([[1, 3, 5, 1, 3, 5, 1, 3, 5],
+    #        [1, 3, 5, 1, 3, 5, 1, 3, 5]])
+    diffMat = tile(inx, (dataSetSize, 1)) - dataSet
+    # 平方
+    sqDiffMat = diffMat**2
+    # 求和
+    sqDistances = sqDiffMat.sum(axis=1)
+    # 开根号
+    distances = sqDistances**0.5
+
+    sortedDistIndicies = distances.argsort()
+    classCount = {}
+
+    # TOP K
+    for i in range(k):
+        voteIlable = labels[sortedDistIndicies[i]]
+        classCount[voteIlable] = classCount.get(voteIlable, 0) + 1
+
+    sortedClassCount = sorted(classCount.iteritems(), key=operator.itemgetter(1), reverse=True)
+
+    return sortedClassCount[0][0]
+
+group, labels = createDateSet()
+print group
+print labels
+print classify0([0,0,1,2], group, labels, 3)
