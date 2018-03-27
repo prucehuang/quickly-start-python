@@ -42,3 +42,5 @@ group, labels = createDateSet()
 print group
 print labels
 print classify0([0,0,1,2], group, labels, 3)
+
+print 8/4/2
