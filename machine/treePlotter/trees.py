@@ -9,6 +9,7 @@
 
 from math import log
 
+# 计算一个数据集的信息熵
 def calcShannonEnt(dataSet):
     numEntries = len(dataSet)
     labelCounts = {}
@@ -25,15 +26,40 @@ def calcShannonEnt(dataSet):
 
     return shannonEnt
 
+# 用value筛选axis下标对应的数据
 def splitDataSet(dataSet, axis, value):
     retDataSet = []
     for featVec in dataSet:
         if featVec[axis] == value:
+			# list[m:n]表示的是[m, n)左闭右开区间
             reducedFeatVec = featVec[: axis]
+			# 将多个值扩展到list
             reducedFeatVec.extend(featVec[axis+1:])
+			# 将一个值追加到list
             retDataSet.append(reducedFeatVec)
     return retDataSet
 
+def chooseBestFeatureToSplit(dataSet):
+	numFeatures = len(dataSet[0]) - 1
+	baseEntropy = calcShannonEnt(dataSet)
+	bestInfoGain = 0.0
+	bestFeature = -1
+	for i in range(numFeatures):
+		featList = [example[i] for example in dataSet]
+		uniqueVals = set(featList)
+		newEntropy = 0.0
+		
+		for value in uniqueVals:
+			subDataSet = splitDataSet(dataSet, i, value)
+			prob = len(subDataSet) / float(len(dataSet))
+			newEntropy += prob*calcShannonEnt(subDataSet)
+		
+		infoGain = baseEntropy - newEntropy
+		if(infoGain > bestInfoGain):
+			bestInfoGain = infoGain
+			bestFeature = i
+	return bestFeature
+	
 def createDataSet():
     dataSet = [[1, 1, 'yes'],
                [1, 1, 'yes'],
@@ -43,5 +69,8 @@ def createDataSet():
     labels = ['no surfacing','flippers']
     return dataSet, labels
 
-dataSet, labels = createDataSet()
-print calcShannonEnt(dataSet)
+if __name__ == '__main__':
+	dataSet, labels = createDataSet()
+	print dataSet
+	print splitDataSet(dataSet, 0, 1)
+	print splitDataSet(dataSet, 0, 0)
