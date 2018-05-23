@@ -8,6 +8,7 @@
 # ***************************************************************
 
 from math import log
+import operator
 
 # 计算一个数据集的信息熵
 def calcShannonEnt(dataSet):
@@ -21,7 +22,7 @@ def calcShannonEnt(dataSet):
 
     shannonEnt = 0.0
     for key in labelCounts:
-        prob = float(labelCounts[key])/numEntries
+        prob = float(labelCounts[key]) / numEntries
         shannonEnt -= prob * log(prob, 2)
 
     return shannonEnt
@@ -31,46 +32,59 @@ def splitDataSet(dataSet, axis, value):
     retDataSet = []
     for featVec in dataSet:
         if featVec[axis] == value:
-			# list[m:n]表示的是[m, n)左闭右开区间
+            # list[m:n]表示的是[m, n)左闭右开区间
             reducedFeatVec = featVec[: axis]
-			# 将多个值扩展到list
-            reducedFeatVec.extend(featVec[axis+1:])
-			# 将一个值追加到list
+            # 将多个值扩展到list
+            reducedFeatVec.extend(featVec[axis + 1:])
+            # 将一个值追加到list
             retDataSet.append(reducedFeatVec)
     return retDataSet
 
+# 选出最优的划分决策树字段——列号
 def chooseBestFeatureToSplit(dataSet):
-	numFeatures = len(dataSet[0]) - 1
-	baseEntropy = calcShannonEnt(dataSet)
-	bestInfoGain = 0.0
-	bestFeature = -1
-	for i in range(numFeatures):
-		featList = [example[i] for example in dataSet]
-		uniqueVals = set(featList)
-		newEntropy = 0.0
-		
-		for value in uniqueVals:
-			subDataSet = splitDataSet(dataSet, i, value)
-			prob = len(subDataSet) / float(len(dataSet))
-			newEntropy += prob*calcShannonEnt(subDataSet)
-		
-		infoGain = baseEntropy - newEntropy
-		if(infoGain > bestInfoGain):
-			bestInfoGain = infoGain
-			bestFeature = i
-	return bestFeature
-	
+    # 获得列数
+    numFeatures = len(dataSet[0]) - 1
+    baseEntropy = calcShannonEnt(dataSet)
+    bestInfoGain = 0.0
+    bestFeature = -1
+    for i in range(numFeatures):
+        # 获得原始数据的第i列数据值
+        featList = [example[i] for example in dataSet]
+        uniqueVals = set(featList)
+        newEntropy = 0.0
+
+        for value in uniqueVals:
+            subDataSet = splitDataSet(dataSet, i, value)
+            prob = len(subDataSet) / float(len(dataSet))
+            newEntropy += prob * calcShannonEnt(subDataSet)
+
+        print newEntropy
+        # bestInfoGain表示熵减少的最大值
+        infoGain = baseEntropy - newEntropy
+        if (infoGain > bestInfoGain):
+            bestInfoGain = infoGain
+            bestFeature = i
+    return bestFeature
+
+def majorityCnt(classList):
+    classCount = {}
+    for vote in classList:
+        if vote not in classCount.keys():
+            classCount[vote] = 0
+        classCount[vote] += 1
+    sortedClassCount = sorted(classCount.iteritems(), key=operator.itemgetter(1), reverse=True)
+    return sortedClassCount[0][0]
+
 def createDataSet():
     dataSet = [[1, 1, 'yes'],
                [1, 1, 'yes'],
                [1, 0, 'no'],
                [0, 1, 'no'],
                [0, 1, 'no']]
-    labels = ['no surfacing','flippers']
+    labels = ['no surfacing', 'flippers']
     return dataSet, labels
 
+
 if __name__ == '__main__':
-	dataSet, labels = createDataSet()
-	print dataSet
-	print splitDataSet(dataSet, 0, 1)
-	print splitDataSet(dataSet, 0, 0)
+    dataSet, labels = createDataSet()
+    print chooseBestFeatureToSplit(dataSet)
