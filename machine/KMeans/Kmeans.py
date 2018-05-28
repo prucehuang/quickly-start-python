@@ -11,14 +11,14 @@
 
 from numpy import *
 
-def loadDataSet(fileName):      #general function to parse tab -delimited floats
-    dataMat = []                #assume last column is target value
+def loaddataMat(fileName):      #general function to parse tab -delimited floats
+    dataSet = []                #assume last column is target value
     fr = open(fileName)
     for line in fr.readlines():
         curLine = line.strip().split('\t')
         fltLine = map(float, curLine) #map all elements to float()
-        dataMat.append(fltLine)
-    return mat(dataMat)
+        dataSet.append(fltLine)
+    return mat(dataSet)
 
 def distEclud(vecA, vecB):
     return sqrt(sum(power(vecA - vecB, 2))) #la.norm(vecA-vecB)
@@ -33,6 +33,7 @@ def randCent(dataSetMat, k):
         centroids[:,j] = mat(minJ + rangeJ * random.rand(k,1))
     return centroids
     
+# 随机选取质心 进行迭代 直到没有点的质心改变为止
 def kMeans(dataMat, k, distMeas=distEclud, createCent=randCent):
     m = shape(dataMat)[0]
     clusterAssment = mat(zeros((m,2)))#create mat to assign data points 
@@ -79,32 +80,41 @@ def kMeans(dataMat, k, distMeas=distEclud, createCent=randCent):
         print i, centCountList[i], centDistList[i]
     return centroids, clusterAssment
 
-def biKmeans(dataSet, k, distMeas=distEclud):
-    m = shape(dataSet)[0]
+# 二分K均值聚类算法 每次只将一个族一分为二 
+def biKmeans(dataMat, k, distMeas=distEclud):
+    m = shape(dataMat)[0]
     clusterAssment = mat(zeros((m,2)))
-    centroid0 = mean(dataSet, axis=0).tolist()[0]
+    centroid0 = mean(dataMat, axis=0).tolist()[0]
     centList =[centroid0] #create a list with one centroid
+	# 初始化将所有的点归为0族,并且计算它们的距离
     for j in range(m):#calc initial Error
-        clusterAssment[j,1] = distMeas(mat(centroid0), dataSet[j,:])**2
+        clusterAssment[j,1] = distMeas(mat(centroid0), dataMat[j,:])**2
+		
     while (len(centList) < k):
         lowestSSE = inf
         for i in range(len(centList)):
-            ptsInCurrCluster = dataSet[nonzero(clusterAssment[:,0].A==i)[0],:]#get the data points currently in cluster i
+            ptsInCurrCluster = dataMat[nonzero(clusterAssment[:,0].A==i)[0],:]#get the data points currently in cluster i
             centroidMat, splitClustAss = kMeans(ptsInCurrCluster, 2, distMeas)
             sseSplit = sum(splitClustAss[:,1])#compare the SSE to the currrent minimum
             sseNotSplit = sum(clusterAssment[nonzero(clusterAssment[:,0].A!=i)[0],1])
             print "sseSplit, and notSplit: ",sseSplit,sseNotSplit
             if (sseSplit + sseNotSplit) < lowestSSE:
                 bestCentToSplit = i
+				# 这里存了两个新族的质心
                 bestNewCents = centroidMat
+				# 这里只存了两个新生的族0、1
                 bestClustAss = splitClustAss.copy()
                 lowestSSE = sseSplit + sseNotSplit
+		# 将1族的族号设置为当前的族数
         bestClustAss[nonzero(bestClustAss[:,0].A == 1)[0],0] = len(centList) #change 1 to 3,4, or whatever
+		# 将i族的族号继承给0号族
         bestClustAss[nonzero(bestClustAss[:,0].A == 0)[0],0] = bestCentToSplit
         print 'the bestCentToSplit is: ',bestCentToSplit
         print 'the len of bestClustAss is: ', len(bestClustAss)
-        centList[bestCentToSplit] = bestNewCents[0,:].tolist()[0]#replace a centroid with two best centroids 
+		# 追加新的质点 更新旧族的质点
         centList.append(bestNewCents[1,:].tolist()[0])
+		centList[bestCentToSplit] = bestNewCents[0,:].tolist()[0]#replace a centroid with two best centroids 
+        # 更新旧最佳切割质点的全部点的质心
         clusterAssment[nonzero(clusterAssment[:,0].A == bestCentToSplit)[0],:]= bestClustAss#reassign new clusters, and SSE
     return mat(centList), clusterAssment
 
