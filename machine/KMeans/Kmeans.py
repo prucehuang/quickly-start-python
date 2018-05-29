@@ -64,7 +64,11 @@ def kMeans(dataMat, k, distMeas=distEclud, createCent=randCent):
             ptsInClust = dataMat[nonzero(clusterAssment[:,0].A==cent)[0]]
             # axis = 0：压缩行，对各列求均值，返回 1* n 矩阵
             # axis = 1：压缩列，对各行求均值，返回 m *1 矩阵
-            centroids[cent,:] = mean(ptsInClust, axis=0) #assign centroid to mean 
+            centroids[cent,:] = mean(ptsInClust, axis=0) #assign centroid to mean
+    return centroids, clusterAssment
+
+def analysisModel(clusterAssment):
+    k = int(max(clusterAssment[:, 0].A)[0]) + 1
     # 打印族的属性
     centDistList = {}
     centCountList = {}
@@ -78,7 +82,6 @@ def kMeans(dataMat, k, distMeas=distEclud, createCent=randCent):
         centCountList[cent] += 1
     for i in range(k):
         print i, centCountList[i], centDistList[i]
-    return centroids, clusterAssment
 
 # 二分K均值聚类算法 每次只将一个族一分为二 
 def biKmeans(dataMat, k, distMeas=distEclud):
@@ -86,10 +89,10 @@ def biKmeans(dataMat, k, distMeas=distEclud):
     clusterAssment = mat(zeros((m,2)))
     centroid0 = mean(dataMat, axis=0).tolist()[0]
     centList =[centroid0] #create a list with one centroid
-	# 初始化将所有的点归为0族,并且计算它们的距离
+    # 初始化将所有的点归为0族,并且计算它们的距离
     for j in range(m):#calc initial Error
         clusterAssment[j,1] = distMeas(mat(centroid0), dataMat[j,:])**2
-		
+        
     while (len(centList) < k):
         lowestSSE = inf
         for i in range(len(centList)):
@@ -100,22 +103,22 @@ def biKmeans(dataMat, k, distMeas=distEclud):
             print "sseSplit, and notSplit: ",sseSplit,sseNotSplit
             if (sseSplit + sseNotSplit) < lowestSSE:
                 bestCentToSplit = i
-				# 这里存了两个新族的质心
+                # 这里存了两个新族的质心
                 bestNewCents = centroidMat
-				# 这里只存了两个新生的族0、1
+                # 这里只存了两个新生的族0、1
                 bestClustAss = splitClustAss.copy()
                 lowestSSE = sseSplit + sseNotSplit
-		# 将1族的族号设置为当前的族数
+        # 将1族的族号设置为当前的族数
         bestClustAss[nonzero(bestClustAss[:,0].A == 1)[0],0] = len(centList) #change 1 to 3,4, or whatever
-		# 将i族的族号继承给0号族
+        # 将i族的族号继承给0号族
         bestClustAss[nonzero(bestClustAss[:,0].A == 0)[0],0] = bestCentToSplit
         print 'the bestCentToSplit is: ',bestCentToSplit
         print 'the len of bestClustAss is: ', len(bestClustAss)
-		# 追加新的质点 更新旧族的质点
+        # 追加新的质点 更新旧族的质点
         centList.append(bestNewCents[1,:].tolist()[0])
-		centList[bestCentToSplit] = bestNewCents[0,:].tolist()[0]#replace a centroid with two best centroids 
+        centList[bestCentToSplit] = bestNewCents[0,:].tolist()[0]#replace a centroid with two best centroids 
         # 更新旧最佳切割质点的全部点的质心
-        clusterAssment[nonzero(clusterAssment[:,0].A == bestCentToSplit)[0],:]= bestClustAss#reassign new clusters, and SSE
+        clusterAssment[nonzero(clusterAssment[:,0].A == bestCentToSplit)[0],:]= bestClustAss #reassign new clusters, and SSE
     return mat(centList), clusterAssment
 
 import urllib
