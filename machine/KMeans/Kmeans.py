@@ -161,18 +161,18 @@ import matplotlib
 import matplotlib.pyplot as plt
 def clusterClubs(numClust=5):
     datList = []
-    for line in open('places.txt').readlines():
+    for line in open('D:\Document\quickly-start-python\machine\KMeans\data\\places.txt').readlines():
         lineArr = line.split('\t')
         datList.append([float(lineArr[4]), float(lineArr[3])])
     datMat = mat(datList)
     myCentroids, clustAssing = biKmeans(datMat, numClust, distMeas=distSLC)
+    
     fig = plt.figure()
     rect=[0.1,0.1,0.8,0.8]
-    scatterMarkers=['s', 'o', '^', '8', 'p', \
-                    'd', 'v', 'h', '>', '<']
+    scatterMarkers=['s', 'o', '^', '8', 'p', 'd', 'v', 'h', '>', '<']
     axprops = dict(xticks=[], yticks=[])
     ax0=fig.add_axes(rect, label='ax0', **axprops)
-    imgP = plt.imread('Portland.png')
+    imgP = plt.imread('D:\Document\quickly-start-python\machine\KMeans\data\\Portland.png')
     ax0.imshow(imgP)
     ax1=fig.add_axes(rect, label='ax1', frameon=False)
     for i in range(numClust):
