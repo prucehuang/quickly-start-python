@@ -42,13 +42,14 @@ def splitDataSet(dataSet, axis, value):
 
 # 选出最优的划分决策树字段——列号
 def chooseBestFeatureToSplit(dataSet):
-    # 获得列数
+    # 获得列数, 最后一列是label, 每一列表示一个特征的全部取值
     numFeatures = len(dataSet[0]) - 1
     baseEntropy = calcShannonEnt(dataSet)
     bestInfoGain = 0.0
     bestFeature = -1
     for i in range(numFeatures):
         # 获得原始数据的第i列数据值
+        # example表示一行数据
         featList = [example[i] for example in dataSet]
         uniqueVals = set(featList)
         newEntropy = 0.0
@@ -56,9 +57,10 @@ def chooseBestFeatureToSplit(dataSet):
         for value in uniqueVals:
             subDataSet = splitDataSet(dataSet, i, value)
             prob = len(subDataSet) / float(len(dataSet))
+            # 乘上prob是为了归一化
             newEntropy += prob * calcShannonEnt(subDataSet)
 
-        print newEntropy
+        print i, '列: ', newEntropy
         # bestInfoGain表示熵减少的最大值
         infoGain = baseEntropy - newEntropy
         if (infoGain > bestInfoGain):
