@@ -26,7 +26,7 @@ df_feature = df_features[['class1id_4001_class2rating',
 df_feature.to_csv('D:\class2_active_3_sample.txt', encoding='utf-8', sep=',')
 """
 
-df_features = pd.read_csv('D:\class2_active_3_sample.txt',encoding='utf8')  
+df_features = pd.read_csv('D:\class2_active.txt', encoding='utf8')
 df_feature = df_features[['class1id_4001_class2rating',
                                'class1id_4001_gamecount',
                                'class1id_4001_onlineday',
@@ -34,9 +34,9 @@ df_feature = df_features[['class1id_4001_class2rating',
                                'class1id_4001_lostgamecount']]
 
 Scores = []  # 存放轮廓系数  
-X = range(2,25)
+X = range(2,10)
 for k in X:      
-    estimator = KMeans(n_clusters=k, max_iter=500).fit(df_feature)  # 构造聚类器  
+    estimator = KMeans(n_clusters=k, max_iter=50).fit(df_feature)  # 构造聚类器
     Scores.append(silhouette_score(df_feature, estimator.labels_, metric='euclidean'))  
     
     print(k, 'kmeans analysis ', estimator.inertia_)
