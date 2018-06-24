@@ -68,15 +68,37 @@ def chooseBestFeatureToSplit(dataSet):
             bestFeature = i
     return bestFeature
 
+
+# -------------------
+# 从classList中选出现频次最大的class
 def majorityCnt(classList):
     classCount = {}
     for vote in classList:
         if vote not in classCount.keys():
             classCount[vote] = 0
         classCount[vote] += 1
+    # operator.itemgetter(1) 使用classcount的第一类数据降序
     sortedClassCount = sorted(classCount.iteritems(), key=operator.itemgetter(1), reverse=True)
     return sortedClassCount[0][0]
 
+def createTree(dataSet, labels):
+    classList = [example[-1] for example in dataSet]
+    # 当classList[0]在classList中出现的次数等于classList的size的时候 classList里面只有一个元素
+    if classList.count(classList[0]) == len(classList): 
+        return classList[0]#stop splitting when all of the classes are equal
+    if len(dataSet[0]) == 1: #stop splitting when there are no more features in dataSet
+        return majorityCnt(classList)
+    bestFeat = chooseBestFeatureToSplit(dataSet)
+    bestFeatLabel = labels[bestFeat]
+    myTree = {bestFeatLabel:{}}
+    del(labels[bestFeat])
+    featValues = [example[bestFeat] for example in dataSet]
+    uniqueVals = set(featValues)
+    for value in uniqueVals:
+        subLabels = labels[:]       #copy all of labels, so trees don't mess up existing labels
+        myTree[bestFeatLabel][value] = createTree(splitDataSet(dataSet, bestFeat, value),subLabels)
+    return myTree 
+    
 def createDataSet():
     dataSet = [[1, 1, 'yes'],
                [1, 1, 'yes'],
@@ -86,6 +108,26 @@ def createDataSet():
     labels = ['no surfacing', 'flippers']
     return dataSet, labels
 
+# 用决策树分类
+def classify(inputTree, featLabels, testVec):
+    # inputTree such as
+    # {'no surfacing': {0: 'no', 1: {'flippers': {0: 'no', 1: 'yes'}}}}
+    firstStr = inputTree.keys()[0]
+    secondDict = inputTree[firstStr]
+    # 找到根节点对应的特征值
+    featIndex = featLabels.index(firstStr)
+    key = testVec[featIndex]
+    valueOfFeat = secondDict[key]
+    if isinstance(valueOfFeat, dict): 
+        classLabel = classify(valueOfFeat, featLabels, testVec)
+    else: classLabel = valueOfFeat
+    return classLabel
+
+def createLensesDataSet(fileName, delim='\t'):
+    fr = open(fileName)
+    dataSet = [line.strip().split(delim) for line in fr.readlines()]
+    labels = ['age', 'prescripy', 'astigmatic', 'tearRate']
+    return dataSet, labels
 
 if __name__ == '__main__':
     dataSet, labels = createDataSet()
