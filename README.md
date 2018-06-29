@@ -36,3 +36,19 @@ pruce
 - 私有实例变量（外部访问会报错）：以 __开头（2个下划线），其他和普通变量一样（__private_var）
 - 专有变量：__开头，__结尾，一般为python的自有变量（__class__）
 
+## python 脚本模板
+```
+# !usr/bin/env python
+# coding:utf-8
+
+"""
+
+author: ${USER}
+@email: 1756983926@qq.com
+@modify:
+@time: ${YEAR}/${MONTH}/${DAY}
+"""
+
+if __name__ == "__main__":
+    print('Hello, Welcome to My World')
+```

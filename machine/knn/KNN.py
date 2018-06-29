@@ -41,10 +41,10 @@ def classify0(inx, dataSet, labels, k):
         classCount[voteIlable] = classCount.get(voteIlable, 0) + 1
     # 降序 http://www.runoob.com/python/python-func-sorted.html
     sortedClassCount = sorted(classCount.iteritems(), key=operator.itemgetter(1), reverse=True)
-    print sortedClassCount
+    print(sortedClassCount)
     return sortedClassCount[0][0]
 
 group, labels = createDateSet()
-print group
-print labels
-print classify0([0,0,1,2], group, labels, 3)
+print(group)
+print(labels)
+print(classify0([0,0,1,2], group, labels, 3))
