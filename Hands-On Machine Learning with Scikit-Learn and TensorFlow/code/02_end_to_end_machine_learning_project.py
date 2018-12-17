@@ -17,6 +17,9 @@ from pandas.plotting import scatter_matrix
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.pipeline import Pipeline
+from sklearn.pipeline import FeatureUnion
+from sklearn.preprocessing import StandardScaler
 
 # file path
 PROJECT_ROOT_DIR = sys.path[0] + '/../'
@@ -169,15 +172,17 @@ if __name__ == "__main__":
     print('train set count', train_set_size, ', percent', train_set_size*1.0/(train_set_size+test_set_size),
           '\ntest set count',test_set_size, ', percent', test_set_size*1.0/(train_set_size+test_set_size), '\n')
     housing = train_set.copy()
+    
     '''
         探索特征之间的相关性
     '''
     housing_labels = housing["median_house_value"].copy()
     housing = housing.drop("median_house_value", axis=1)  # drop labels for training set
     # discover_visualize_data()
-
-    # housing["longitude_latitude"] = (housing["longitude"] + housing["latitude"])
-
+    
+    '''
+        特征处理
+    '''
     ## NULL值处理
     # print(get_no_null_data(housing).head()) # 查看有空值的特征数据
     imputer = SimpleImputer(strategy="median") # 空值用中位数替换
@@ -194,3 +199,49 @@ if __name__ == "__main__":
     print(housing_cat.head(10))
     housing_cat_1hot = LabelBinarizer().fit_transform(housing_cat)
     print(housing_cat_1hot)
+    
+    
+    ##
+    
+    
+    
+    attr_adder = CombinedAttributesAdder(add_bedrooms_per_room=False)
+    housing_extra_attribs = attr_adder.transform(housing.values)
+    housing_extra_attribs = pd.DataFrame(
+            housing_extra_attribs,
+            columns=list(housing.columns)+['rooms_per_household', 'population_per_household', 'longitude_latitude'])
+    print(housing_extra_attribs.head())
+    
+    num_pipeline = Pipeline([
+        ('imputer', SimpleImputer(strategy="median")),
+        ('attribs_adder', CombinedAttributesAdder()),
+        ('std_scaler', StandardScaler()),
+    ])
+
+    # print(num_pipeline.fit_transform(housing_num).head())
+    num_attribs = list(housing_num)
+    cat_attribs = ["ocean_proximity"]
+
+    full_pipeline = FeatureUnion([
+        ("num", num_pipeline, num_attribs),
+        ("cat", LabelBinarizer(), cat_attribs),
+    ])
+
+    #housing_prepared = full_pipeline.fit_transform(housing)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
