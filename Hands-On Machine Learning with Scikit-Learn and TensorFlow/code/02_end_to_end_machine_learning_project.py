@@ -16,6 +16,7 @@ from sklearn.model_selection import train_test_split
 from pandas.plotting import scatter_matrix
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import LabelBinarizer
+from sklearn.base import BaseEstimator, TransformerMixin
 
 # file path
 PROJECT_ROOT_DIR = sys.path[0] + '/../'
@@ -40,16 +41,16 @@ def quick_look_data():
     print('housing data info')
     print('----------------------------')
     print(housing.info())
-    # longitude             20640 non-null float64
-    # latitude              20640 non-null float64
-    # housing_median_age    20640 non-null float64 有异常高的值
-    # total_rooms           20640 non-null float64
-    # total_bedrooms        20433 non-null float64 有空值
-    # population            20640 non-null float64
-    # households            20640 non-null float64
-    # median_income         20640 non-null float64 分段处理，可以用来层次划分训练集测试集
-    # median_house_value    20640 non-null float64 有异常高的值
-    # ocean_proximity       20640 non-null object  字符串类型的类别
+    # 0 longitude             20640 non-null float64
+    # 1 latitude              20640 non-null float64
+    # 2 housing_median_age    20640 non-null float64 有异常高的值
+    # 3 total_rooms           20640 non-null float64
+    # 4 total_bedrooms        20433 non-null float64 有空值
+    # 5 population            20640 non-null float64
+    # 6 households            20640 non-null float64
+    # 7 median_income         20640 non-null float64 分段处理，可以用来层次划分训练集测试集
+    # 8 median_house_value    20640 non-null float64 有异常高的值
+    # 9 ocean_proximity       20640 non-null object  字符串类型的类别
     # 一共九个特征，一共目标房价
 
     print('--------------------------------------------------------------')
@@ -125,12 +126,29 @@ def discover_visualize_data():
     housing.plot(kind="scatter", x="longitude_latitude", y="median_house_value", alpha=0.1)
     plot.show()
 
-
 # axis=1, reduce the columns, return a Series whose index is the original index 返回所有列不为空的index
 # 与axis=1 对应的是 axis=0，reduce the index, return a Series whose index is the original column labels 返回所有数据不为空的列名
 # 与any() 之对应的是 all()， any表示任意一个True则返回True，all表示任意一个为False则返回False
 get_no_null_data = lambda df: df[df.isnull().any(axis=1)]
 
+class CombinedAttributesAdder(BaseEstimator, TransformerMixin):
+    def __init__(self, add_bedrooms_per_room = True): # no *args or **kargs
+        self.add_bedrooms_per_room = add_bedrooms_per_room
+    def fit(self, X, y=None):
+        return self  # nothing else to do
+    def transform(self, X, y=None):
+        # column index
+        longitude_ix, latitude_ix, rooms_ix, bedrooms_ix, population_ix, household_ix = 0, 1, 3, 4, 5, 6
+
+        rooms_per_household = X[:, rooms_ix] / X[:, household_ix]
+        population_per_household = X[:, population_ix] / X[:, household_ix]
+        longitude_latitude = X[:, longitude_ix] / X[:, latitude_ix]
+        if self.add_bedrooms_per_room:
+            bedrooms_per_room = X[:, bedrooms_ix] / X[:, rooms_ix]
+            return np.c_[X, rooms_per_household, population_per_household, longitude_latitude,
+                         bedrooms_per_room]
+        else:
+            return np.c_[X, rooms_per_household, population_per_household, longitude_latitude]
 
 if __name__ == "__main__":
     pd.set_option('display.width', 1000)  # 设置字符显示宽度
@@ -157,9 +175,7 @@ if __name__ == "__main__":
     housing_labels = housing["median_house_value"].copy()
     housing = housing.drop("median_house_value", axis=1)  # drop labels for training set
     # discover_visualize_data()
-    # housing["rooms_per_household"] = housing["total_rooms"] / housing["householdss"]
-    # housing["bedrooms_per_room"] = housing["total_bedrooms"] / housing["total_rooms"]
-    # housing["population_per_household"] = housing["population"] / housing["households"]
+
     # housing["longitude_latitude"] = (housing["longitude"] + housing["latitude"])
 
     ## NULL值处理
