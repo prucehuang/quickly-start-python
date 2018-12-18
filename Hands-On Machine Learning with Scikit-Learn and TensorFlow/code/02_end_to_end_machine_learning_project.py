@@ -4,9 +4,8 @@
 """
 房价预测
 author: prucehuang
-@email: 1756983926@qq.com
-@modify:
-@time: 2018/12/15
+ email: 1756983926@qq.com
+  date: 2018/12/15
 """
 import numpy as np
 import os, sys
