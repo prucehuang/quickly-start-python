@@ -266,6 +266,7 @@ if __name__ == "__main__":
     print(some_data.shape)
 
     print("Predictions:", lin_reg.predict(some_data))
+    print(some_labels.values)
     
     
     
