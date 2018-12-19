@@ -23,6 +23,9 @@ from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import mean_absolute_error
+from sklearn.model_selection import cross_val_score
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.svm import SVR
 
 # file path
 PROJECT_ROOT_DIR = sys.path[0] + '/../'
@@ -223,6 +226,23 @@ def feature_clear(housing):
     ])
     return full_pipeline.fit_transform(housing)
 
+def display_score(model):
+    housing_predictions = model.predict(housing_prepared)
+    # 平方误差
+    tree_mse = mean_squared_error(housing_labels, housing_predictions)
+    tree_rmse = np.sqrt(tree_mse)
+    print('mean_squared_error', tree_rmse)
+    # 绝对值误差
+    tree_mae = mean_absolute_error(housing_labels, housing_predictions)
+    print('mean_absolute_error', tree_mae)
+    # 交叉验证误差
+    scores = cross_val_score(model, housing_prepared, housing_labels, scoring="neg_mean_squared_error", cv=10)
+    scores = np.sqrt(-scores)
+    print("Scores:", scores)
+    print("Mean:", scores.mean())
+    print("Standard deviation:", scores.std())
+    print(pd.Series(scores).describe())
+
 if __name__ == "__main__":
     pd.set_option('display.width', 1000)  # 设置字符显示宽度
     pd.set_option('display.max_columns', None) # 打印所有列，类似的max_rows打印所有行
@@ -263,31 +283,25 @@ if __name__ == "__main__":
     # 线性回归模型
     lin_reg = LinearRegression()
     lin_reg.fit(housing_prepared, housing_labels)
-    housing_predictions = lin_reg.predict(housing_prepared)
-    # 平方误差
-    lin_mse = mean_squared_error(housing_labels, housing_predictions)
-    lin_rmse = np.sqrt(lin_mse)
-    print('LinearRegression', 'mean_squared_error', lin_rmse)
-    # 绝对值误差
-    lin_mae = mean_absolute_error(housing_labels, housing_predictions)
-    print('LinearRegression', 'mean_absolute_error', lin_mae)
+    print('------------------LinearRegression-----------------------')
+    display_score(lin_reg)
 
     # 决策树模型
     tree_reg = DecisionTreeRegressor(random_state=42)
     tree_reg.fit(housing_prepared, housing_labels)
-    housing_predictions = tree_reg.predict(housing_prepared)
-    # 平方误差
-    tree_mse = mean_squared_error(housing_labels, housing_predictions)
-    tree_rmse = np.sqrt(tree_mse)
-    print('DecisionTreeRegressor', 'mean_squared_error', tree_rmse)
-    # 绝对值误差
-    tree_mae = mean_absolute_error(housing_labels, housing_predictions)
-    print('DecisionTreeRegressor', 'mean_absolute_error', tree_mae)
-    
-    
-    
-    
-    
+    print('------------------DecisionTreeRegressor-----------------------')
+    display_score(tree_reg)
+
+    # 随机森林
+    forest_reg = RandomForestRegressor(random_state=42, n_estimators=10)
+    forest_reg.fit(housing_prepared, housing_labels)
+    print('------------------RandomForestRegressor-----------------------')
+    display_score(forest_reg)
+
+    svm_reg = SVR(kernel="linear")
+    svm_reg.fit(housing_prepared, housing_labels)
+    print('------------------SVR Linear-----------------------')
+    display_score(svm_reg)
     
     
     
