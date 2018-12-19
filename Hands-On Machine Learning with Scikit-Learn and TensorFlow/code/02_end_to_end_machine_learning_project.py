@@ -20,6 +20,9 @@ from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LinearRegression
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error
 
 # file path
 PROJECT_ROOT_DIR = sys.path[0] + '/../'
@@ -257,22 +260,29 @@ if __name__ == "__main__":
     '''
         算法模型
     '''
+    # 线性回归模型
     lin_reg = LinearRegression()
     lin_reg.fit(housing_prepared, housing_labels)
+    housing_predictions = lin_reg.predict(housing_prepared)
+    # 平方误差
+    lin_mse = mean_squared_error(housing_labels, housing_predictions)
+    lin_rmse = np.sqrt(lin_mse)
+    print('LinearRegression', 'mean_squared_error', lin_rmse)
+    # 绝对值误差
+    lin_mae = mean_absolute_error(housing_labels, housing_predictions)
+    print('LinearRegression', 'mean_absolute_error', lin_mae)
 
-    # let's try the full preprocessing pipeline on a few training instances
-    some_data = housing_prepared[:10]
-    some_labels = housing_labels[:10]
-    print(some_data.shape)
-
-    print("Predictions:", lin_reg.predict(some_data))
-    print(some_labels.values)
-    
-    
-    
-    
-    
-    
+    # 决策树模型
+    tree_reg = DecisionTreeRegressor(random_state=42)
+    tree_reg.fit(housing_prepared, housing_labels)
+    housing_predictions = tree_reg.predict(housing_prepared)
+    # 平方误差
+    tree_mse = mean_squared_error(housing_labels, housing_predictions)
+    tree_rmse = np.sqrt(tree_mse)
+    print('DecisionTreeRegressor', 'mean_squared_error', tree_rmse)
+    # 绝对值误差
+    tree_mae = mean_absolute_error(housing_labels, housing_predictions)
+    print('DecisionTreeRegressor', 'mean_absolute_error', tree_mae)
     
     
     
