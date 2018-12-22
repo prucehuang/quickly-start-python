@@ -8,24 +8,29 @@ author: prucehuang
   date: 2018/12/15
 """
 import numpy as np
-import os, sys
+import os
+import sys
 import pandas as pd
 import matplotlib.pyplot as plot
-from sklearn.model_selection import train_test_split
 from pandas.plotting import scatter_matrix
-from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import LabelBinarizer
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.impute import SimpleImputer
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import mean_absolute_error
-from sklearn.model_selection import cross_val_score
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.svm import SVR
+from scipy.stats import randint
 
 # file path
 PROJECT_ROOT_DIR = sys.path[0] + '/../'
@@ -218,15 +223,15 @@ def feature_clear(housing):
     ])
     cat_pipeline = Pipeline([
         ('selector', DataFrameSelector(cat_attribs)),
-        ('label_binarizer', CustomLabelBinarizer()),
+        ('one_hot', OneHotEncoder()),
     ])
     full_pipeline = ColumnTransformer([
         ("num_pipeline", num_pipeline, num_attribs),
         ("cat_pipeline", cat_pipeline, cat_attribs),
     ])
-    return full_pipeline.fit_transform(housing)
+    return full_pipeline.fit(housing)
 
-def display_score(model):
+def display_score(model, housing_prepared, housing_labels):
     housing_predictions = model.predict(housing_prepared)
     # 平方误差
     tree_mse = mean_squared_error(housing_labels, housing_predictions)
@@ -257,11 +262,16 @@ if __name__ == "__main__":
     # housing["income_cat"] = np.ceil(housing["median_income"] / 1.5)
     # # Label those above 5 as 5
     # housing["income_cat"].where(housing["income_cat"] < 5, 5.0, inplace=True)
+    # split = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+    # for train_index, test_index in split.split(housing, housing["income_cat"]):
+    #     print(train_index, test_index)
+    #     strat_train_set = housing.loc[train_index]
+    #     strat_test_set = housing.loc[test_index]
     train_set, test_set = train_test_split(housing, test_size=0.2, random_state=13)
     train_set_size = len(train_set)
     test_set_size = len(test_set)
     print('train set count', train_set_size, ', percent', train_set_size*1.0/(train_set_size+test_set_size),
-          '\ntest set count',test_set_size, ', percent', test_set_size*1.0/(train_set_size+test_set_size), '\n')
+          '\ntest set count', test_set_size, ', percent', test_set_size*1.0/(train_set_size+test_set_size), '\n')
     housing = train_set.copy()
     housing_labels = housing["median_house_value"].copy()
     housing = housing.drop("median_house_value", axis=1)  # drop labels for training set
@@ -275,8 +285,8 @@ if __name__ == "__main__":
         特征处理
     '''
     # feature_clear_prepare()
-    housing_prepared = feature_clear(housing)
-
+    full_pipeline = feature_clear(housing)
+    housing_prepared = full_pipeline.transform(housing)
     '''
         算法模型
     '''
@@ -284,27 +294,102 @@ if __name__ == "__main__":
     lin_reg = LinearRegression()
     lin_reg.fit(housing_prepared, housing_labels)
     print('------------------LinearRegression-----------------------')
-    display_score(lin_reg)
+    display_score(lin_reg, housing_prepared, housing_labels)
 
     # 决策树模型
     tree_reg = DecisionTreeRegressor(random_state=42)
     tree_reg.fit(housing_prepared, housing_labels)
     print('------------------DecisionTreeRegressor-----------------------')
-    display_score(tree_reg)
+    display_score(tree_reg, housing_prepared, housing_labels)
 
     # 随机森林
     forest_reg = RandomForestRegressor(random_state=42, n_estimators=10)
     forest_reg.fit(housing_prepared, housing_labels)
     print('------------------RandomForestRegressor-----------------------')
-    display_score(forest_reg)
+    display_score(forest_reg, housing_prepared, housing_labels)
 
     svm_reg = SVR(kernel="linear")
     svm_reg.fit(housing_prepared, housing_labels)
     print('------------------SVR Linear-----------------------')
-    display_score(svm_reg)
+    display_score(svm_reg, housing_prepared, housing_labels)
     
-    
-    
-    
-    
-    
+    '''
+        自动选择超参数 -- GridSearchCV 
+    '''
+    param_grid = [
+        # try 12 (3×4) combinations of hyperparameters
+        {'n_estimators': [3, 10, 30, 40, 50], 'max_features': [2, 4, 6, 8]},
+        # then try 6 (2×3) combinations with bootstrap set as False
+        {'bootstrap': [False], 'n_estimators': [3, 10], 'max_features': [2, 3, 4]},
+    ]
+    # n_estimators: The number of trees in the forest
+    # max_features: The number of features to consider when looking for the best split:
+    # bootstrap: Whether bootstrap samples are used when building trees.
+    forest_reg = RandomForestRegressor(random_state=42)
+    # train across 5 folds, that's a total of (12+6)*5=90 rounds of training
+    grid_search = GridSearchCV(forest_reg, param_grid, cv=5, scoring='neg_mean_squared_error',
+                                                                          return_train_score=True)
+    grid_search.fit(housing_prepared, housing_labels)
+    print(grid_search.best_params_)
+    print(grid_search.best_estimator_)
+    cvres = grid_search.cv_results_
+    for mean_score, params in zip(cvres["mean_test_score"], cvres["params"]):
+        print(np.sqrt(-mean_score), params)
+    print(pd.DataFrame(grid_search.cv_results_))
+    '''
+        自动选择超参数 -- RandomizedSearchCV 
+    '''
+    param_distribs = {
+        'n_estimators': randint(low=1, high=200),
+        'max_features': randint(low=1, high=8),
+    }
+    forest_reg = RandomForestRegressor(random_state=42)
+    rnd_search = RandomizedSearchCV(forest_reg, param_distributions=param_distribs,
+                                    n_iter=10, cv=5, scoring='neg_mean_squared_error', random_state=42)
+    rnd_search.fit(housing_prepared, housing_labels)
+    print(rnd_search.best_params_)
+    print(rnd_search.best_estimator_)
+    cvres = rnd_search.cv_results_
+    for mean_score, params in zip(cvres["mean_test_score"], cvres["params"]):
+        print(np.sqrt(-mean_score), params)
+
+    '''
+        从model分析特征的相关性
+    '''
+    feature_importances = rnd_search.best_estimator_.feature_importances_
+    extra_attribs = ['rooms_per_household', 'population_per_household', 'longitude_latitude', 'bedrooms_per_room']
+    num_attribs = list(housing.select_dtypes(include=[np.number]))
+    cat_one_hot_attribs = list(full_pipeline.named_transformers_["cat_pipeline"]
+                                .named_steps['one_hot'].categories_[0])
+    attributes = num_attribs + extra_attribs + cat_one_hot_attribs
+    print(sorted(zip(feature_importances, attributes), reverse=True))
+    # [(0.310678845742785, 'median_income'),
+    #  (0.19356258849160035, 'longitude_latitude'),
+    #  (0.10248760759120326, 'population_per_household'),
+    #  (0.07228343188881887, 'INLAND'),
+    #  (0.061960647537243355, 'bedrooms_per_room'),
+    #  (0.058436650736405964, 'rooms_per_household'),
+    #  (0.05251662618136168, 'latitude'),
+    #  (0.05164879674447034, 'longitude'),
+    #  (0.03418313966433936, 'housing_median_age'),
+    #  (0.0138798046040645, 'population'),
+    #  (0.013783289597624714, 'total_rooms'),
+    #  (0.012858213758831696, 'total_bedrooms'),
+    #  (0.012420175910613226, 'households'),
+    #  (0.004607470514336529, '<1H OCEAN'),
+    #  (0.00260023527307223, 'NEAR OCEAN'),
+    #  (0.0019737702779430103, 'NEAR BAY'),
+    #  (0.00011870548528599022, 'ISLAND')]
+
+    '''
+        测试集预测
+    '''
+    final_model = rnd_search.best_estimator_
+
+    y_test = test_set["median_house_value"].copy()
+    X_test = test_set.drop("median_house_value", axis=1)
+    X_test_prepared = full_pipeline.transform(X_test)
+
+    print('------------------final model -----------------------')
+    display_score(final_model, X_test_prepared, y_test)
+
