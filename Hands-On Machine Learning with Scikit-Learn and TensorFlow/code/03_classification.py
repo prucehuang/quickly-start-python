@@ -14,8 +14,10 @@ from sklearn.base import BaseEstimator
 from sklearn.datasets import load_digits
 import matplotlib
 import matplotlib.pyplot as plt
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import SGDClassifier
-from sklearn.metrics import confusion_matrix, recall_score, precision_score, f1_score
+from sklearn.metrics import confusion_matrix, recall_score, precision_score, f1_score, precision_recall_curve, \
+    roc_curve, roc_auc_score
 from sklearn.model_selection import cross_val_score, cross_val_predict
 
 DIGIT_IMAGE_SIZE = 8
@@ -59,6 +61,38 @@ class Never5Classifier(BaseEstimator):
     def predict(self, X):
         return np.zeros((len(X), 1), dtype=bool)
 
+def plot_precision_recall_vs_threshold(precisions, recalls, thresholds):
+    plt.plot(thresholds, precisions[:-1], "b--", label="Precision", linewidth=2)
+    plt.plot(thresholds, recalls[:-1], "g-", label="Recall", linewidth=2)
+    plt.xlabel("Threshold", fontsize=16)
+    plt.legend(loc="upper left", fontsize=16)
+    plt.ylim([0, 1.2])
+
+def plot_precision_vs_recall(precisions, recalls):
+    plt.plot(recalls, precisions, "b-", linewidth=2)
+    plt.xlabel("Recall", fontsize=16)
+    plt.ylabel("Precision", fontsize=16)
+    plt.axis([0, 1, 0, 1])
+
+def plot_roc_curve(fpr, tpr, label=None):
+    plt.plot(fpr, tpr, linewidth=2, label=label)
+    plt.plot([0, 1], [0, 1], 'k--')
+    plt.axis([0, 1, 0, 1])
+    plt.xlabel('False Positive Rate', fontsize=16)
+    plt.ylabel('True Positive Rate', fontsize=16)
+
+def print_model_predict_evaluate(y_train, y_train_pred):
+    # 交叉矩阵
+    # [[1063   14]
+    #   [5  118]]
+    print('confusion_matrix\n', confusion_matrix(y_train, y_train_pred))
+    # 准确率
+    print('precision_score:', precision_score(y_train, y_train_pred))
+    # 召回率
+    print('recall_score:', recall_score(y_train, y_train_pred))
+    # f1
+    print('f1:', f1_score(y_train, y_train_pred))
+
 if __name__ == "__main__":
     pd.set_option('display.width', 1000)  # 设置字符显示宽度
     pd.set_option('display.max_columns', None)  # 打印所有列，类似的max_rows打印所有行
@@ -89,21 +123,39 @@ if __name__ == "__main__":
     # print(cross_val_score(never_5_clf, X_train, y_train_5, cv=3, scoring="accuracy"))
 
     y_train_pred = cross_val_predict(sgd_clf, X_train, y_train_5, cv=3)
-    # 交叉矩阵
-    # [[1063   14]
-    #   [5  118]]
-    print(confusion_matrix(y_train_5, y_train_pred))
-    # 准确率
-    print(precision_score(y_train_5, y_train_pred))
-    # 召回率
-    print(recall_score(y_train_5, y_train_pred))
-    # f1
-    print(f1_score(y_train_5, y_train_pred))
-    
-    
-    
-    
-    
+    print('---------------SGD-------------------')
+    print_model_predict_evaluate(y_train_5, y_train_pred)
+
+    # 用交叉验证选择的model预测，结果返回score
+    y_scores = cross_val_predict(sgd_clf, X_train, y_train_5, cv=3, method="decision_function")
+    precisions, recalls, thresholds = precision_recall_curve(y_train_5, y_scores)
+    # 阈值-准确率、召回率曲线图
+    # plot_precision_recall_vs_threshold(precisions, recalls, thresholds) # 根据曲线 选择了thresholds=0
+    # 召回率-准确率曲线
+    # plot_precision_vs_recall(precisions, recalls)
+    # roc曲线
+    fpr, tpr, thresholds = roc_curve(y_train_5, y_scores)
+    # plot_roc_curve(fpr, tpr)
+    # AUC
+    print('SGD AUC', roc_auc_score(y_train_5, y_scores))
+
+    forest_clf = RandomForestClassifier(random_state=42, n_estimators=10)
+    y_train_pred_forest = cross_val_predict(forest_clf, X_train, y_train_5, cv=3)
+    print('---------------RandomForestClassifier-------------------')
+    print_model_predict_evaluate(y_train_5, y_train_pred_forest)
+
+    y_probas_forest = cross_val_predict(forest_clf, X_train, y_train_5, cv=3, method="predict_proba")
+    y_scores_forest = y_probas_forest[:, 1]  # score = proba of positive class - 结构是[0的概率， 1的概率]
+    fpr_forest, tpr_forest, thresholds_forest = roc_curve(y_train_5, y_scores_forest)
+    print('RandomForest AUC', roc_auc_score(y_train_5, y_scores_forest))
+    plt.figure(figsize=(8, 6))
+    plt.plot(fpr, tpr, "b:", linewidth=2, label="SGD")
+    plot_roc_curve(fpr_forest, tpr_forest, "Random Forest")
+    plt.legend(loc="lower right", fontsize=16)
+    plt.show()
+
+    # plt.show()
+
     
     
     
