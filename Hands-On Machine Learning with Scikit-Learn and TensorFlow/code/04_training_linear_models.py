@@ -12,12 +12,12 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 
 X = 2 * np.random.rand(100, 1)
+X_b = np.c_[np.ones((100, 1)), X]  # add x0 = 1 to each instance
 y = 4 + 3 * X + np.random.randn(100, 1)
 
 # 正规方程求解
 def normal_equation():
     # 方式一，使用numpy函数
-    X_b = np.c_[np.ones((100, 1)), X]  # add x0 = 1 to each instance
     theta_best = np.linalg.inv(X_b.T.dot(X_b)).dot(X_b.T).dot(y)  # 上公式
     print(theta_best)  # [[3.95336514] [3.07080187]]
     # 方式二，使用sklearn函数
@@ -43,3 +43,15 @@ if __name__ == "__main__":
         用正规方程直接求解最优解
     '''
     # normal_equation()
+
+    '''
+        梯度下降
+    '''
+    eta = 0.1
+    n_iterations = 1000
+    m = 100
+    theta = np.random.randn(2, 1)
+
+    for iteration in range(n_iterations):
+        gradients = 2 / m * X_b.T.dot(X_b.dot(theta) - y)
+        theta = theta - eta * gradients
