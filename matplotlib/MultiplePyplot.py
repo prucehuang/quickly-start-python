@@ -2,6 +2,11 @@
 # coding:utf-8
 '''
 将四张小图拼成一张大图，方便对比
+重点介绍一下subplot(numRows, numCols, plotNum)
+1、当三个参数都小于10的时候，逗号可以省略，于是plt.subplot(2, 2, 2) 等价于 plt.subplot(222)
+2、numRows, numCols 表示我们要绘制一个多少行 多少列的图，plotNum是每个图位置的编号，从左往右，从上往下依次是1,2,3,...
+3、当你需要多图组合时，你可以是用221, 222, 212这种类型 在212的时候假装只有两行一列的把程序骗过去
+参考 https://blog.csdn.net/gatieme/article/details/61416645
 @ author: Pruce
 @ email: 1756983926@qq.com
 @ date: 2018年6月19日
