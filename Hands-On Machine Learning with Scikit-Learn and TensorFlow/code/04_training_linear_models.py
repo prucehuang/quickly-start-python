@@ -10,6 +10,10 @@ author: prucehuang
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression, SGDRegressor
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 
 X = 2 * np.random.rand(100, 1)
 X_b = np.c_[np.ones((100, 1)), X]  # add x0 = 1 to each instance
@@ -38,6 +42,7 @@ def normal_equation():
     plt.legend(loc="upper left", fontsize=14)
     plt.show()
 
+# 批量梯度下降实现
 def plot_batch_gradient_descent(theta, eta, n_iterations=50, theta_path=None):
     plt.plot(X, y, "b.")
     for iteration in range(n_iterations):
@@ -49,20 +54,21 @@ def plot_batch_gradient_descent(theta, eta, n_iterations=50, theta_path=None):
         theta = theta - eta * gradients
         if theta_path is not None:
             theta_path.append(theta)
-    plt.xlabel("$x_1$", fontsize=18)
     plt.axis([0, 2, 0, 15])
-    plt.title(r"BGD $\eta = {}$".format(eta), fontsize=16)
+    plt.title(r"BGD $\eta = {}$".format(eta), fontsize=12)
 
 def learning_schedule(t):
+    t0, t1 = 100, 2000
     return t0 / (t + t1)
 
+# 随机梯度下降实现，绘制第一轮的前十条预测曲线
 def plot_stochastic_gradient_descent(theta, eta_init=0.1, n_iterations=50, theta_path=None):
     plt.plot(X, y, "b.")
     for iteration in range(n_iterations):
         for i in range(m):
-            if iteration==0 and i<10:
+            if i==0:
                 y_predict = X_new_b.dot(theta)
-                style = "b-" if i > 0 else "r--"
+                style = "b-" if iteration>0 else "r--"
                 plt.plot(X_new, y_predict, style)
             random_index = np.random.randint(m)
             xi = X_b[random_index:random_index+1]
@@ -72,46 +78,37 @@ def plot_stochastic_gradient_descent(theta, eta_init=0.1, n_iterations=50, theta
             theta = theta - eta * gradients
             if theta_path is not None:
                 theta_path.append(theta)
-    plt.xlabel("$x_1$", fontsize=18)
     plt.axis([0, 2, 0, 15])
-    plt.title(r"SGD $\eta = {}$".format(eta_init), fontsize=16)
+    plt.title(r"SGD $\eta = {}$".format(eta_init), fontsize=12)
 
-def plot_mine_batch_gradient_descent(theta, eta_init, n_iterations=50, minibatch_size=20, theta_path=None):
+# 小批量梯度下降
+def plot_mine_batch_gradient_descent(theta, eta_init, n_iterations=80, minibatch_size=20, theta_path=None):
     plt.plot(X, y, "b.")
+    t = 0
     for iteration in range(n_iterations):
         shuffled_indices = np.random.permutation(m)
         X_b_shuffled = X_b[shuffled_indices]
         y_shuffled = y[shuffled_indices]
         for i in range(0, m, minibatch_size):
-            if iteration==30 and i<10:
+            if i==0:
                 y_predict = X_new_b.dot(theta)
-                style = "b-" if i > 0 else "r--"
+                style = "b-" if iteration > 0 else "r--"
                 plt.plot(X_new, y_predict, style)
             xi = X_b_shuffled[i:i + minibatch_size]
             yi = y_shuffled[i:i + minibatch_size]
             gradients = 2 / minibatch_size * xi.T.dot(xi.dot(theta) - yi)
-            eta = eta_init * m / (i + m)  # 定义一个衰减的学习率, 第一轮eta=eta_init
+            eta = 100 * eta_init / (t + 1000)  # 定义一个衰减的学习率, 第一轮eta=eta_init
+            t += 1
             theta = theta - eta * gradients
             if theta_path is not None:
                 theta_path.append(theta)
     plt.xlabel("$x_1$", fontsize=18)
     plt.axis([0, 2, 0, 15])
-    plt.title(r"MBGD $\eta = {}$".format(eta_init), fontsize=16)
+    plt.title(r"MBGD $\eta = {}$".format(eta_init), fontsize=12)
 
-if __name__ == "__main__":
-    np.random.seed(42)
-    '''
-        用正规方程直接求解最优解
-    '''
-    # normal_equation()
-
-    '''
-        梯度下降
-    '''
-    plt.figure(figsize=(13, 10))
-    eta = 0.1
+def gradient_descent():
+    plt.figure(figsize=(14, 12))
     theta = np.random.randn(2, 1)
-
 
     # 绘制不同的学习率给训练带来的影响图
     # Batch Gradient Descent 批量梯度下降
@@ -151,16 +148,98 @@ if __name__ == "__main__":
     plt.subplot(339)
     plot_mine_batch_gradient_descent(theta_mbgd, eta_init=0.5)
 
+    # 绘制theta的改变路径
+    theta_path_bgd = np.array(theta_path_bgd)
+    theta_path_sgd = np.array(theta_path_sgd)
+    theta_path_mbgd = np.array(theta_path_mbgd)
+    plt.figure(figsize=(7, 4))
+    plt.plot(theta_path_bgd[:, 0], theta_path_bgd[:, 1], "b-o", linewidth=3, label="Batch")
+    plt.plot(theta_path_sgd[:, 0], theta_path_sgd[:, 1], "r-s", linewidth=1, label="Stochastic")
+    plt.plot(theta_path_mbgd[:, 0], theta_path_mbgd[:, 1], "g-+", linewidth=2, label="Mini-batch")
 
-    # theta_path_bgd = np.array(theta_path_bgd)
-    # theta_path_sgd = np.array(theta_path_sgd)
-    # theta_path_mgd = np.array(theta_path_mgd)
-    # plt.figure(figsize=(7, 4))
-    # plt.plot(theta_path_sgd[:, 0], theta_path_sgd[:, 1], "r-s", linewidth=1, label="Stochastic")
-    # plt.plot(theta_path_mgd[:, 0], theta_path_mgd[:, 1], "g-+", linewidth=2, label="Mini-batch")
-    # plt.plot(theta_path_bgd[:, 0], theta_path_bgd[:, 1], "b-o", linewidth=3, label="Batch")
-    # plt.legend(loc="upper left", fontsize=16)
-    # plt.xlabel(r"$\theta_0$", fontsize=20)
-    # plt.ylabel(r"$\theta_1$   ", fontsize=20, rotation=0)
-    # plt.axis([2.5, 4.5, 2.3, 3.9])
+    plt.legend(loc="upper left", fontsize=16)
+    plt.xlabel(r"$\theta_0$", fontsize=20)
+    plt.ylabel(r"$\theta_1$   ", fontsize=20, rotation=0)
+    plt.axis([2.5, 4.5, 2.3, 3.9])
     plt.show()
+
+# 多项式回归， 使用Pipe来对比不同复杂度模型的表现
+def polynomial_regression():
+    m = 100
+    X = 6 * np.random.rand(m, 1) - 3
+    X_new = np.linspace(-3, 3, 100).reshape(100, 1)
+    y = 0.5 * X ** 2 + X + 2 + np.random.randn(m, 1)
+
+    for style, width, degree in (("g-", 1, 300), ("b--", 2, 2), ("r-+", 2, 1)):
+        polybig_features = PolynomialFeatures(degree=degree, include_bias=False)
+        std_scaler = StandardScaler()
+        lin_reg = LinearRegression()
+        polynomial_regression = Pipeline([
+            ("poly_features", polybig_features),  # x0, a, a**2
+            ("std_scaler", std_scaler),
+            ("lin_reg", lin_reg),
+        ])
+        polynomial_regression.fit(X, y)
+        y_newbig = polynomial_regression.predict(X_new)
+        plt.plot(X_new, y_newbig, style, label=str(degree), linewidth=width)
+
+    plt.plot(X, y, "b.", linewidth=3)
+    plt.xlabel("$x_1$", fontsize=18)
+    plt.ylabel("$y$", rotation=0, fontsize=18)
+    plt.legend(loc="upper left", fontsize=14)
+    plt.axis([-3, 3, 0, 10])
+    plt.show()
+
+# 画出模型随着样本量变化的训练、验证误差
+def plot_learning_curves(model, X, y):
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=10)
+    train_errors, val_errors = [], []
+    for m in range(1, len(X_train)):
+        model.fit(X_train[:m], y_train[:m])
+        y_train_predict = model.predict(X_train[:m])
+        y_val_predict = model.predict(X_val)
+        train_errors.append(mean_squared_error(y_train[:m], y_train_predict))
+        val_errors.append(mean_squared_error(y_val, y_val_predict))
+
+    plt.plot(np.sqrt(train_errors), "r-+", linewidth=2, label="train")
+    plt.plot(np.sqrt(val_errors), "b-", linewidth=3, label="val")
+    plt.legend(loc="upper right", fontsize=14)   # not shown in the book
+    plt.xlabel("Training set size", fontsize=14) # not shown
+    plt.ylabel("RMSE", fontsize=14)              # not shown
+
+# 通过学习曲线判断模型状态
+def learning_curves():
+    plt.figure(figsize=(10, 4))
+    plt.subplot(121)
+    lin_reg = LinearRegression()
+    plot_learning_curves(lin_reg, X, y)
+    plt.axis([0, 80, 0, 3])
+    plt.title(r"underfitting_learning_curves_plot", fontsize=12)
+
+    plt.subplot(122)
+    std_scaler = StandardScaler()
+    polynomial_regression = Pipeline([
+        ("poly_features", PolynomialFeatures(degree=10, include_bias=False)),
+        ("std_scaler", std_scaler),
+        ("lin_reg", LinearRegression()),
+    ])
+    plot_learning_curves(polynomial_regression, X, y)
+    plt.axis([0, 80, 0, 3])
+    plt.title(r"overfitting_learning_curves_plot", fontsize=12)
+    plt.show()
+
+if __name__ == "__main__":
+    np.random.seed(42)
+    '''用正规方程直接求解最优解线性回归'''
+    # normal_equation()
+
+    '''梯度下降'''
+    # gradient_descent()
+
+    '''多项式回归'''
+    # polynomial_regression()
+
+    '''通过学习曲线来判断模型是否过拟合、是否欠拟合、现在模型是什么状态、下一步应该如何处理'''
+    # learning_curves()
+
+
