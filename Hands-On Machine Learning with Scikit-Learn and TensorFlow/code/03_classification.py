@@ -297,7 +297,7 @@ if __name__ == "__main__":
     '''
         model versus
     '''
-    # binary_model_versus(X_train, y_train_5)
+    binary_model_versus(X_train, y_train_5)
 
     '''
         Multiclass classification
@@ -312,7 +312,7 @@ if __name__ == "__main__":
     '''
         Multioutput classification
     '''
-    multioutput_classification()
+    # multioutput_classification()
 
 
 
