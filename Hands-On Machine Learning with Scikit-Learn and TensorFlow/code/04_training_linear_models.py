@@ -9,7 +9,7 @@ author: prucehuang
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.linear_model import LinearRegression, SGDRegressor, Ridge
+from sklearn.linear_model import LinearRegression, SGDRegressor, Ridge, Lasso
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
@@ -20,7 +20,7 @@ X_b = np.c_[np.ones((100, 1)), X]  # add x0 = 1 to each instance
 X_new = np.array([[0], [2]])
 X_new_b = np.c_[np.ones((2, 1)), X_new]  # add x0 = 1 to each instance
 m = len(X_b)
-y = 4 + 3 * X + np.random.randn(100, 1)
+y = 1 + 2 * X + np.random.randn(100, 1)
 
 # 正规方程求解
 def normal_equation():
@@ -106,6 +106,7 @@ def plot_mine_batch_gradient_descent(theta, eta_init, n_iterations=80, minibatch
     plt.axis([0, 2, 0, 15])
     plt.title(r"MBGD $\eta = {}$".format(eta_init), fontsize=12)
 
+# 对比分析三种梯度下降
 def gradient_descent():
     plt.figure(figsize=(14, 12))
     theta = np.random.randn(2, 1)
@@ -228,6 +229,78 @@ def learning_curves():
     plt.title(r"overfitting_learning_curves_plot", fontsize=12)
     plt.show()
 
+# 画出模型预测的曲线，对比加上正则项的效果
+def plot_model(X, y, X_new, model_class, polynomial, alphas, **model_kargs):
+    for alpha, style in zip(alphas, ("b-", "g--", "r:")):
+        model = model_class(alpha, **model_kargs) if alpha > 0 else LinearRegression()
+        if polynomial:
+            model = Pipeline([
+                ("poly_features", PolynomialFeatures(degree=10, include_bias=False)),
+                ("std_scaler", StandardScaler()),
+                ("regul_reg", model),
+            ])
+        model.fit(X, y)
+        y_new_regul = model.predict(X_new)
+        lw = 3 if alpha > 0 else 2
+        plt.plot(X_new, y_new_regul, style, linewidth=lw, label=r"$\alpha = {}$".format(alpha))
+    plt.plot(X, y, "b.", linewidth=3)
+    plt.legend(loc="upper left", fontsize=15)
+    plt.axis([0, 3, 0, 4])
+
+# 对比正则项对模型的效果
+def regularized_models():
+    m = 50
+    X = 3 * np.random.rand(m, 1)
+    y = 1 + 0.5 * X + np.random.randn(m, 1) / 1.5
+    X_new = np.linspace(0, 3, 100).reshape(100, 1)
+
+    plt.figure(figsize=(16, 8))
+    # Ridge Regularized
+    plt.subplot(221)
+    plot_model(X, y, X_new, Ridge, polynomial=False, alphas=(0, 10, 100), random_state=42)
+    plt.ylabel("$y$", rotation=0, fontsize=18)
+    plt.title('Ridge')
+    plt.subplot(222)
+    plot_model(X, y, X_new, Ridge, polynomial=True, alphas=(0, 10**-5, 1), random_state=42)
+    plt.title('Ridge Polynomial')
+    # Lasso Regularized
+    plt.subplot(223)
+    plot_model(X, y, X_new, Lasso, polynomial=False, alphas=(0, 0.1, 1), random_state=42)
+    plt.ylabel("$y$", rotation=0, fontsize=18)
+    plt.xlabel("$x_1$", fontsize=18)
+    plt.title('Lasso')
+    plt.subplot(224)
+    plot_model(X, y, X_new, Lasso, polynomial=True, alphas=(0, 10**-5, 1), tol=1, random_state=42)
+    plt.title('Lasso Polynomial')
+    plt.xlabel("$x_1$", fontsize=18)
+    plt.show()
+
+    '''
+        # L2惩罚项实现
+        # 方式一
+        ridge_reg = Ridge(alpha=1, solver="cholesky", random_state=42) 
+        ridge_reg.fit(X, y)
+        ridge_reg.predict([[1.5]])
+        # 方式二
+        sgd_reg = SGDRegressor(max_iter=5, penalty="l2", random_state=42)
+        sgd_reg.fit(X, y.ravel())
+        sgd_reg.predict([[1.5]])
+        # 方式三
+        ridge_reg = Ridge(alpha=1, solver="sag", random_state=42)
+        ridge_reg.fit(X, y)
+        ridge_reg.predict([[1.5]])
+        
+        # L1惩罚项实现
+        lasso_reg = Lasso(alpha=0.1)
+        lasso_reg.fit(X, y)
+        lasso_reg.predict([[1.5]])
+        
+        # 弹性网络惩罚项实现 
+        elastic_net = ElasticNet(alpha=0.1, l1_ratio=0.5, random_state=42)
+        elastic_net.fit(X, y)
+        elastic_net.predict([[1.5]])
+    '''
+
 if __name__ == "__main__":
     np.random.seed(42)
     '''用正规方程直接求解最优解线性回归'''
@@ -243,35 +316,5 @@ if __name__ == "__main__":
     # learning_curves()
 
     '''正则项模型惩罚'''
-    m = 20
-    X = 3 * np.random.rand(m, 1)
-    y = 1 + 0.5 * X + np.random.randn(m, 1) / 1.5
-    X_new = np.linspace(0, 3, 100).reshape(100, 1)
-
-
-    def plot_model(model_class, polynomial, alphas, **model_kargs):
-        for alpha, style in zip(alphas, ("b-", "g--", "r:")):
-            model = model_class(alpha, **model_kargs) if alpha > 0 else LinearRegression()
-            if polynomial:
-                model = Pipeline([
-                    ("poly_features", PolynomialFeatures(degree=10, include_bias=False)),
-                    ("std_scaler", StandardScaler()),
-                    ("regul_reg", model),
-                ])
-            model.fit(X, y)
-            y_new_regul = model.predict(X_new)
-            lw = 2 if alpha > 0 else 1
-            plt.plot(X_new, y_new_regul, style, linewidth=lw, label=r"$\alpha = {}$".format(alpha))
-        plt.plot(X, y, "b.", linewidth=3)
-        plt.legend(loc="upper left", fontsize=15)
-        plt.xlabel("$x_1$", fontsize=18)
-        plt.axis([0, 3, 0, 4])
-
-    plt.figure(figsize=(8, 4))
-    plt.subplot(121)
-    plot_model(Ridge, polynomial=False, alphas=(0, 10, 100), random_state=42)
-    plt.ylabel("$y$", rotation=0, fontsize=18)
-    plt.subplot(122)
-    plot_model(Ridge, polynomial=True, alphas=(0, 10 ** -5, 1), random_state=42)
-    plt.show()
+    regularized_models()
 
