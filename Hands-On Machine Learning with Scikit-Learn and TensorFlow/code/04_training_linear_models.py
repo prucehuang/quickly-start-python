@@ -301,6 +301,59 @@ def regularized_models():
         elastic_net.predict([[1.5]])
     '''
 
+# 用控制迭代次数的办法来控制模型选择参数，选择验证集误差减少后即将增加的拐点时的模型（避免模型进一步训练后过拟合）
+def early_stopping():
+    m = 100
+    X = 6 * np.random.rand(m, 1) - 3
+    y = 2 + X + 0.5 * X**2 + np.random.randn(m, 1)
+
+    X_train, X_val, y_train, y_val = train_test_split(X[:50], y[:50].ravel(), test_size=0.5, random_state=10)
+
+    poly_scaler = Pipeline([
+            ("poly_features", PolynomialFeatures(degree=90, include_bias=False)),
+            ("std_scaler", StandardScaler()),
+        ])
+
+    X_train_poly_scaled = poly_scaler.fit_transform(X_train)
+    X_val_poly_scaled = poly_scaler.transform(X_val)
+
+    sgd_reg = SGDRegressor(max_iter=2, # 用这个参数可以控制每轮训练几次，外配合总训练轮数就可以打印训练epoch-RMSE曲线
+                           tol=1e-3,
+                           penalty=None,
+                           eta0=0.0005,
+                           warm_start=True,
+                           learning_rate="constant",
+                           random_state=42)
+
+    n_epochs = 500
+    train_errors, val_errors = [], []
+    # 训练n_epochs，记录训练、验证集误差
+    for epoch in range(n_epochs):
+        sgd_reg.fit(X_train_poly_scaled, y_train)
+        y_train_predict = sgd_reg.predict(X_train_poly_scaled)
+        y_val_predict = sgd_reg.predict(X_val_poly_scaled)
+        train_errors.append(mean_squared_error(y_train, y_train_predict))
+        val_errors.append(mean_squared_error(y_val, y_val_predict))
+
+    best_epoch = np.argmin(val_errors) # 返回最小值对应的数组下标
+    best_val_rmse = np.sqrt(val_errors[best_epoch])
+
+    plt.annotate('Best model',
+                 xy=(best_epoch, best_val_rmse),
+                 xytext=(best_epoch, best_val_rmse + 1),
+                 ha="center",
+                 arrowprops=dict(facecolor='black', shrink=0.05),
+                 fontsize=16,
+                )
+
+    best_val_rmse -= 0.03  # just to make the graph look better
+    plt.plot([0, n_epochs], [best_val_rmse, best_val_rmse], "k:", linewidth=2)
+    plt.plot(np.sqrt(val_errors), "b-", linewidth=3, label="Validation set")
+    plt.plot(np.sqrt(train_errors), "r--", linewidth=2, label="Training set")
+    plt.legend(loc="upper right", fontsize=14)
+    plt.xlabel("Epoch", fontsize=14)
+    plt.ylabel("RMSE", fontsize=14)
+    plt.show()
 if __name__ == "__main__":
     np.random.seed(42)
     '''用正规方程直接求解最优解线性回归'''
@@ -316,5 +369,7 @@ if __name__ == "__main__":
     # learning_curves()
 
     '''正则项模型惩罚'''
-    regularized_models()
+    # regularized_models()
 
+    '''遇到拐点就停止训练'''
+    # early_stopping()
