@@ -7,6 +7,52 @@
 2、numRows, numCols 表示我们要绘制一个多少行 多少列的图，plotNum是每个图位置的编号，从左往右，从上往下依次是1,2,3,...
 3、当你需要多图组合时，你可以是用221, 222, 212这种类型 在212的时候假装只有两行一列的把程序骗过去
 参考 https://blog.csdn.net/gatieme/article/details/61416645
+
+重点介绍一下plot的颜色形状控制参数
+fmt = '[color][marker][line]'
+Colors
+character	color
+'b'	blue
+'g'	green
+'r'	red
+'c'	cyan
+'m'	magenta
+'y'	yellow
+'k'	black
+'w'	white
+
+Markers
+character	description
+'.'	point marker
+','	pixel marker
+'o'	circle marker
+'v'	triangle_down marker
+'^'	triangle_up marker
+'<'	triangle_left marker
+'>'	triangle_right marker
+'1'	tri_down marker
+'2'	tri_up marker
+'3'	tri_left marker
+'4'	tri_right marker
+'s'	square marker
+'p'	pentagon marker
+'*'	star marker
+'h'	hexagon1 marker
+'H'	hexagon2 marker
+'+'	plus marker
+'x'	x marker
+'D'	diamond marker
+'d'	thin_diamond marker
+'|'	vline marker
+'_'	hline marker
+
+Line Styles
+character	description
+'-'	solid line style
+'--'	dashed line style
+'-.'	dash-dot line style
+':'	dotted line style
+参考文档https://matplotlib.org/api/_as_gen/matplotlib.pyplot.plot.html
 @ author: Pruce
 @ email: 1756983926@qq.com
 @ date: 2018年6月19日
