@@ -7,9 +7,10 @@ author: prucehuang
  email: 1756983926@qq.com
   date: 2019/01/08
 """
+from sklearn.datasets import make_moons
 from sklearn.linear_model import SGDClassifier
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, PolynomialFeatures
 from sklearn.svm import SVC, LinearSVC
 from sklearn import datasets
 import numpy as np
@@ -184,34 +185,24 @@ def three_way_to_linear_svm():
     svm_clf_kernel.fit(X, y)
     print(svm_clf_kernel.named_steps, 'predict ==>', svm_clf_kernel.predict([[5.5, 1.7]]))
 
-if __name__ == "__main__":
-    '''首先展示一下SVM的预测曲线和支持向量'''
-    # hard_margin_classification()
-    '''正式的证实特征处理的重要性'''
-    # sensitivity_to_feature_scales()
-    '''异常值对hard margin classification的影响'''
-    # sensitivity_to_outliers()
-    '''三种方式实现线性SVM'''
-    # three_way_to_linear_svm()
-
+def comparing_different_regularization_c_settings():
     iris = datasets.load_iris()
     X = iris["data"][:, (2, 3)]  # petal length, petal width
     y = (iris["target"] == 2).astype(np.float64)  # Iris-Virginica
 
     scaler = StandardScaler()
     svm_clf_c_1 = LinearSVC(C=1, loss="hinge", random_state=42)
-    svm_clf_c_100 = LinearSVC(C=100, loss="hinge", random_state=42)
-
     scaled_svm_clf_c_1 = Pipeline([
         ("scaler", scaler),
         ("linear_svc", svm_clf_c_1),
     ])
+    scaled_svm_clf_c_1.fit(X, y)
+
+    svm_clf_c_100 = LinearSVC(C=100, loss="hinge", random_state=42)
     scaled_svm_clf_c_100 = Pipeline([
         ("scaler", scaler),
         ("linear_svc", svm_clf_c_100),
     ])
-
-    scaled_svm_clf_c_1.fit(X, y)
     scaled_svm_clf_c_100.fit(X, y)
 
     # Convert to unscaled parameters
@@ -249,5 +240,85 @@ if __name__ == "__main__":
     plt.xlabel("Petal length", fontsize=14)
     plt.title("$C = {}$".format(svm_clf_c_100.C), fontsize=16)
     plt.axis([4, 6, 0.8, 2.8])
+
+    plt.show()
+
+# 将一维的非线性可分数据 转换成 二维的线性可分数据
+def plot_polynomial_change_linear_data():
+    X1D = np.linspace(-4, 4, 9).reshape(-1, 1)
+    X2D = np.c_[X1D, X1D ** 2]
+    y = np.array([0, 0, 1, 1, 1, 1, 1, 0, 0])
+
+    plt.figure(figsize=(11, 4))
+
+    plt.subplot(121)
+    plt.grid(True, which='both')  # 显示网格
+    plt.axhline(y=0, color='k')  # 画出y=0的横坐标轴
+    plt.plot(X1D[:, 0][y == 0], np.zeros(4), "bs")
+    plt.plot(X1D[:, 0][y == 1], np.zeros(5), "g^")
+    plt.gca().get_yaxis().set_ticks([])  # 重新设置y轴显示的数字刻度为[]
+    plt.xlabel(r"$x_1$", fontsize=20)
+    plt.axis([-4.5, 4.5, -0.2, 0.2])
+
+    plt.subplot(122)
+    plt.grid(True, which='both')
+    plt.axhline(y=0, color='k')
+    plt.axvline(x=0, color='k')
+    plt.plot(X2D[:, 0][y == 0], X2D[:, 1][y == 0], "bs")
+    plt.plot(X2D[:, 0][y == 1], X2D[:, 1][y == 1], "g^")
+    plt.xlabel(r"$x_1$", fontsize=20)
+    plt.ylabel(r"$x_2$", fontsize=20, rotation=0)
+    plt.gca().get_yaxis().set_ticks([0, 4, 8, 12, 16])
+    plt.plot([-4.5, 4.5], [6.5, 6.5], "r--", linewidth=3)
+    plt.axis([-4.5, 4.5, -1, 17])
+
+    plt.subplots_adjust(right=1)
+    plt.show()
+
+if __name__ == "__main__":
+    '''首先展示一下SVM的预测曲线和支持向量'''
+    # hard_margin_classification()
+    '''正式的证实特征处理的重要性'''
+    # sensitivity_to_feature_scales()
+    '''异常值对hard margin classification的影响'''
+    # sensitivity_to_outliers()
+    '''三种方式实现线性SVM'''
+    # three_way_to_linear_svm()
+    '''对比超参C对线性SVM的影响，C越大street越窄'''
+    # comparing_different_regularization_c_settings()
+    '''多项式kernel'''
+    # plot_polynomial_change_linear_data()
+    X, y = make_moons(n_samples=100, noise=0.15, random_state=42)
+
+    def plot_dataset(X, y, axes):
+        plt.plot(X[:, 0][y==0], X[:, 1][y==0], "bs")
+        plt.plot(X[:, 0][y==1], X[:, 1][y==1], "g^")
+        plt.axis(axes)
+        plt.grid(True, which='both')
+        plt.xlabel(r"$x_1$", fontsize=20)
+        plt.ylabel(r"$x_2$", fontsize=20, rotation=0)
+
+    plot_dataset(X, y, [-1.5, 2.5, -1, 1.5])
+    plt.show()
+    polynomial_svm_clf = Pipeline([
+        ("poly_features", PolynomialFeatures(degree=3)),
+        ("scaler", StandardScaler()),
+        ("svm_clf", LinearSVC(C=10, loss="hinge", random_state=42))
+    ])
+
+    polynomial_svm_clf.fit(X, y)
+
+    def plot_predictions(clf, axes):
+        x0s = np.linspace(axes[0], axes[1], 100)
+        x1s = np.linspace(axes[2], axes[3], 100)
+        x0, x1 = np.meshgrid(x0s, x1s)
+        X = np.c_[x0.ravel(), x1.ravel()]
+        y_pred = clf.predict(X).reshape(x0.shape)
+        y_decision = clf.decision_function(X).reshape(x0.shape)
+        plt.contourf(x0, x1, y_pred, cmap=plt.cm.brg, alpha=0.2)
+        plt.contourf(x0, x1, y_decision, cmap=plt.cm.brg, alpha=0.1)
+
+    plot_predictions(polynomial_svm_clf, [-1.5, 2.5, -1, 1.5])
+    plot_dataset(X, y, [-1.5, 2.5, -1, 1.5])
 
     plt.show()
