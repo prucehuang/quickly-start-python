@@ -11,13 +11,11 @@ author: prucehuang
 # Common imports
 import numpy as np
 import os
+import matplotlib.pyplot as plt
 
 # to make this notebook's output stable across runs
 np.random.seed(42)
 
-# To plot pretty figures
-import matplotlib
-import matplotlib.pyplot as plt
 plt.rcParams['axes.labelsize'] = 14
 plt.rcParams['xtick.labelsize'] = 12
 plt.rcParams['ytick.labelsize'] = 12
@@ -37,7 +35,9 @@ def save_fig(fig_id, tight_layout=True):
 
 if __name__ == "__main__":
     heads_proba = 0.51
+    # 创建一个(10000, 10)的01数据
     coin_tosses = (np.random.rand(10000, 10) < heads_proba).astype(np.int32)
+    # 先按照列梯形累加 再除以当前行号
     cumulative_heads_ratio = np.cumsum(coin_tosses, axis=0) / np.arange(1, 10001).reshape(-1, 1)
 
     plt.figure(figsize=(8, 3.5))
@@ -50,3 +50,10 @@ if __name__ == "__main__":
     plt.axis([0, 10000, 0.42, 0.58])
     save_fig("law_of_large_numbers_plot")
     plt.show()
+
+
+
+
+
+
+
