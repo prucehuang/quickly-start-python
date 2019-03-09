@@ -12,6 +12,7 @@ import numpy as np
 import os
 import tensorflow as tf
 import matplotlib.pyplot as plt
+from sklearn.datasets import fetch_california_housing
 
 # to make this notebook's output stable across runs
 def reset_graph(seed=42):
@@ -68,17 +69,45 @@ def create_graph_and_run_in_session():
     print('way 4.', result)
     sess.close()
 
+'''
+    graph manage
+'''
+def graph_manage():
+    x1 = tf.Variable(1)  # default graph
+    print('x1.graph is tf.get_default_graph()', x1.graph is tf.get_default_graph())
+    tf.reset_default_graph()
+    print('After reset graph, x1.graph is tf.get_default_graph()', x1.graph is tf.get_default_graph())
+    graph = tf.Graph()  # 创建一个新的graph
+    with graph.as_default():
+        x2 = tf.Variable(2)
+    print('x2 belong tp a new graph', x2.graph is tf.get_default_graph(), x2.graph is graph)
+import sys
+import pandas as pd
+# file path
+PROJECT_ROOT_DIR = sys.path[0] + '/../'
+HOUSING_PATH = os.path.join(PROJECT_ROOT_DIR, 'datasets', 'housing')
+
+def load_data(housing_path=HOUSING_PATH):
+    csv_path = os.path.join(housing_path, "housing.csv")
+    return pd.read_csv(csv_path)
+
 if __name__ == "__main__":
     # run一个graph
     # create_graph_and_run_in_session()
     # graph管理
-    x1 = tf.Variable(1) # default graph
-    print('x1.graph is tf.get_default_graph()', x1.graph is tf.get_default_graph())
-    tf.reset_default_graph()
-    print('After reset graph, x1.graph is tf.get_default_graph()', x1.graph is tf.get_default_graph())
-    graph = tf.Graph() # 创建一个新的graph
-    with graph.as_default():
-        x2 = tf.Variable(2)
-    print('x2 belong tp a new graph', x2.graph is tf.get_default_graph(), x2.graph is graph)
+    # graph_manage()
+    reset_graph()
+
+    housing = load_data()
+    m, n = housing.shape
+    housing_data_plus_bias = np.c_[np.ones((m, 1)), housing]
+
+    X = tf.constant(housing_data_plus_bias, dtype=tf.float32, name="X")
+    y = tf.constant(housing.target.reshape(-1, 1), dtype=tf.float32, name="y")
+    XT = tf.transpose(X)
+    theta = tf.matmul(tf.matmul(tf.matrix_inverse(tf.matmul(XT, X)), XT), y)
+
+    with tf.Session() as sess:
+        theta_value = theta.eval()
 
 
