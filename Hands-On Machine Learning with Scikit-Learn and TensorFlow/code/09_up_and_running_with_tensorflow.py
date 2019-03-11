@@ -12,7 +12,9 @@ import numpy as np
 import os
 import tensorflow as tf
 import matplotlib.pyplot as plt
-from sklearn.datasets import fetch_california_housing
+from sklearn import datasets
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import StandardScaler
 
 # to make this notebook's output stable across runs
 def reset_graph(seed=42):
@@ -81,15 +83,6 @@ def graph_manage():
     with graph.as_default():
         x2 = tf.Variable(2)
     print('x2 belong tp a new graph', x2.graph is tf.get_default_graph(), x2.graph is graph)
-import sys
-import pandas as pd
-# file path
-PROJECT_ROOT_DIR = sys.path[0] + '/../'
-HOUSING_PATH = os.path.join(PROJECT_ROOT_DIR, 'datasets', 'housing')
-
-def load_data(housing_path=HOUSING_PATH):
-    csv_path = os.path.join(housing_path, "housing.csv")
-    return pd.read_csv(csv_path)
 
 if __name__ == "__main__":
     # run一个graph
@@ -97,17 +90,84 @@ if __name__ == "__main__":
     # graph管理
     # graph_manage()
     reset_graph()
+    iris = datasets.load_iris()
+    m, n = iris.data.shape
+    iris_data_plus_bias = np.c_[np.ones((m, 1)), iris.data]
 
-    housing = load_data()
-    m, n = housing.shape
-    housing_data_plus_bias = np.c_[np.ones((m, 1)), housing]
-
-    X = tf.constant(housing_data_plus_bias, dtype=tf.float32, name="X")
-    y = tf.constant(housing.target.reshape(-1, 1), dtype=tf.float32, name="y")
+    # 方法一：用正规方程方法计算theta
+    X = tf.constant(iris_data_plus_bias, dtype=tf.float32, name="X")
+    y = tf.constant(iris.target.reshape(-1, 1), dtype=tf.float32, name="y")
     XT = tf.transpose(X)
     theta = tf.matmul(tf.matmul(tf.matrix_inverse(tf.matmul(XT, X)), XT), y)
-
     with tf.Session() as sess:
         theta_value = theta.eval()
+    print('tensorflow:\n', theta_value)
 
+    # 方法二：使用numpy的函数正规方程发求解theta
+    X = iris_data_plus_bias
+    y = iris.target.reshape(-1, 1)
+    theta_numpy = np.linalg.inv(X.T.dot(X)).dot(X.T).dot(y)
+    print('numpy:\n', theta_numpy)
 
+    # 方法三：使用sklearn的LR class求解
+    lin_reg = LinearRegression()
+    lin_reg.fit(iris.data, iris.target.reshape(-1, 1))
+    print('sklearn:\n', np.r_[lin_reg.intercept_.reshape(-1, 1), lin_reg.coef_.T])
+
+    # 特征压缩
+    scaler = StandardScaler()
+    scaled_housing_data = scaler.fit_transform(iris.data)
+    scaled_housing_data_plus_bias = np.c_[np.ones((m, 1)), scaled_housing_data]
+
+    # 方法四：使用TensorFlow手动梯度下降
+    reset_graph()
+    n_epochs = 1000
+    learning_rate = 0.01
+
+    X = tf.constant(scaled_housing_data_plus_bias, dtype=tf.float32, name="X")
+    y = tf.constant(iris.target.reshape(-1, 1), dtype=tf.float32, name="y")
+    theta = tf.Variable(tf.random_uniform([n + 1, 1], -1.0, 1.0, seed=42), name="theta")
+    y_pred = tf.matmul(X, theta, name="predictions")
+    error = y_pred - y
+    mse = tf.reduce_mean(tf.square(error), name="mse")
+    gradients = 2 / m * tf.matmul(tf.transpose(X), error)
+    training_op = tf.assign(theta, theta - learning_rate * gradients)
+
+    init = tf.global_variables_initializer()
+    with tf.Session() as sess:
+        sess.run(init)
+
+        for epoch in range(n_epochs):
+            if epoch % 100 == 0:
+                print("Epoch", epoch, "MSE =", mse.eval())
+            sess.run(training_op)
+
+        best_theta = theta.eval()
+    print('tensorflow manually gradients\n', best_theta)
+
+    # 方法五：使用TensorFlow autodiff梯度下降
+    reset_graph()
+    n_epochs = 1000
+    learning_rate = 0.01
+
+    X = tf.constant(scaled_housing_data_plus_bias, dtype=tf.float32, name="X")
+    y = tf.constant(iris.target.reshape(-1, 1), dtype=tf.float32, name="y")
+    theta = tf.Variable(tf.random_uniform([n + 1, 1], -1.0, 1.0, seed=42), name="theta")
+    y_pred = tf.matmul(X, theta, name="predictions")
+    error = y_pred - y
+    mse = tf.reduce_mean(tf.square(error), name="mse")
+    gradients = tf.gradients(mse, [theta])[0]
+    training_op = tf.assign(theta, theta - learning_rate * gradients)
+
+    init = tf.global_variables_initializer()
+    with tf.Session() as sess:
+        sess.run(init)
+
+        for epoch in range(n_epochs):
+            if epoch % 100 == 0:
+                print("Epoch", epoch, "MSE =", mse.eval())
+            sess.run(training_op)
+
+        best_theta_1 = theta.eval()
+
+    print('tensorflow audodiff gradients:\n', best_theta_1)
