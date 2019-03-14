@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 from sklearn import datasets
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
+from datetime import datetime
 
 # to make this notebook's output stable across runs
 def reset_graph(seed=42):
@@ -40,7 +41,7 @@ def save_fig(fig_id, tight_layout=True):
     plt.savefig(path, format='png', dpi=300)
 
 '''
-    TensorFlow Hello World
+    TensorFlow Hello Worldt
 '''
 def create_graph_and_run_in_session():
     x = tf.Variable(3, name="x")
@@ -227,7 +228,6 @@ def lr_train():
     learning_rate = 0.01
     iris = datasets.load_iris()
     m, n = iris.data.shape
-    iris_data_plus_bias = np.c_[np.ones((m, 1)), iris.data]
     n_epochs = 10
     batch_size = 100
     n_batches = int(np.ceil(m / batch_size))
@@ -248,9 +248,9 @@ def lr_train():
 
     def fetch_batch(epoch, batch_index, batch_size):
         np.random.seed(epoch * n_batches + batch_index)
-        indices = np.random.randint(m, size=batch_size)  
-        X_batch = scaled_iris_data_plus_bias[indices]  
-        y_batch = iris.target.reshape(-1, 1)[indices]  
+        indices = np.random.randint(m, size=batch_size)
+        X_batch = scaled_iris_data_plus_bias[indices]
+        y_batch = iris.target.reshape(-1, 1)[indices]
         return X_batch, y_batch
 
     with tf.Session() as sess:
@@ -312,6 +312,58 @@ def save_load_model():
             best_theta_restored = theta.eval()
             print(best_theta_restored)
 
+'''tensor board'''
+def tensor_board():
+    reset_graph()
+    root_logdir = "D:/Document/tf_logs"
+    now = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    logdir = "{}/run-{}/".format(root_logdir, now)
+
+    n_epochs = 1000
+    learning_rate = 0.01
+    iris = datasets.load_iris()
+    m, n = iris.data.shape
+    batch_size = 100
+    n_batches = int(np.ceil(m / batch_size))
+    scaled_iris_data = StandardScaler().fit_transform(iris.data)
+    scaled_iris_data_plus_bias = np.c_[np.ones((m, 1)), scaled_iris_data]
+
+    X = tf.placeholder(tf.float32, shape=(None, n + 1), name="X")
+    y = tf.placeholder(tf.float32, shape=(None, 1), name="y")
+    theta = tf.Variable(tf.random_uniform([n + 1, 1], -1.0, 1.0, seed=42), name="theta")
+    y_pred = tf.matmul(X, theta, name="predictions")
+    error = y_pred - y
+    mse = tf.reduce_mean(tf.square(error), name="mse")
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
+    training_op = optimizer.minimize(mse)
+
+    init = tf.global_variables_initializer()
+
+    mse_summary = tf.summary.scalar('MSE', mse)
+    file_writer = tf.summary.FileWriter(logdir, tf.get_default_graph())
+
+    def fetch_batch(epoch, batch_index, batch_size):
+        np.random.seed(epoch * n_batches + batch_index)
+        indices = np.random.randint(m, size=batch_size)
+        X_batch = scaled_iris_data_plus_bias[indices]
+        y_batch = iris.target.reshape(-1, 1)[indices]
+        return X_batch, y_batch
+
+    with tf.Session() as sess:  # not shown in the book
+        sess.run(init)  # not shown
+
+        for epoch in range(n_epochs):  # not shown
+            for batch_index in range(n_batches):
+                X_batch, y_batch = fetch_batch(epoch, batch_index, batch_size)
+                if batch_index % 10 == 0:
+                    summary_str = mse_summary.eval(feed_dict={X: X_batch, y: y_batch})
+                    step = epoch * n_batches + batch_index
+                    file_writer.add_summary(summary_str, step)
+                sess.run(training_op, feed_dict={X: X_batch, y: y_batch})
+
+        print('best_theta', theta.eval())
+    file_writer.close()
+
 if __name__ == "__main__":
     # run一个graph
     # create_graph_and_run_in_session()
@@ -320,4 +372,5 @@ if __name__ == "__main__":
     # 求解一个LR模型
     # lr_train()
     # 模型存储
-    save_load_model()
+    # save_load_model()
+    tensor_board()
