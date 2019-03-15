@@ -312,7 +312,11 @@ def save_load_model():
             best_theta_restored = theta.eval()
             print(best_theta_restored)
 
-'''tensor board'''
+'''
+    tensor board
+    tensorboard --logdir tf_logs/
+    http://localhost:6006    
+'''
 def tensor_board():
     reset_graph()
     root_logdir = "D:/Document/tf_logs"
@@ -364,13 +368,107 @@ def tensor_board():
         print('best_theta', theta.eval())
     file_writer.close()
 
+'''Name scopes'''
+def name_scopes():
+    reset_graph()
+    n_epochs = 10
+    learning_rate = 0.01
+    iris = datasets.load_iris()
+    m, n = iris.data.shape
+    batch_size = 100
+    n_batches = int(np.ceil(m / batch_size))
+    scaled_iris_data = StandardScaler().fit_transform(iris.data)
+    scaled_iris_data_plus_bias = np.c_[np.ones((m, 1)), scaled_iris_data]
+
+    now = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    root_logdir = "D:/Document/tf_logs"
+    logdir = "{}/run-{}/".format(root_logdir, now)
+
+    X = tf.placeholder(tf.float32, shape=(None, n + 1), name="X")
+    y = tf.placeholder(tf.float32, shape=(None, 1), name="y")
+    theta = tf.Variable(tf.random_uniform([n + 1, 1], -1.0, 1.0, seed=42), name="theta")
+    y_pred = tf.matmul(X, theta, name="predictions")
+
+    with tf.name_scope("loss") as scope:
+        error = y_pred - y
+        mse = tf.reduce_mean(tf.square(error), name="mse")
+
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
+    training_op = optimizer.minimize(mse)
+
+    init = tf.global_variables_initializer()
+    mse_summary = tf.summary.scalar('MSE', mse)
+    file_writer = tf.summary.FileWriter(logdir, tf.get_default_graph())
+
+    def fetch_batch(epoch, batch_index, batch_size):
+        np.random.seed(epoch * n_batches + batch_index)
+        indices = np.random.randint(m, size=batch_size)
+        X_batch = scaled_iris_data_plus_bias[indices]
+        y_batch = iris.target.reshape(-1, 1)[indices]
+        return X_batch, y_batch
+
+    with tf.Session() as sess:
+        sess.run(init)
+
+        for epoch in range(n_epochs):
+            for batch_index in range(n_batches):
+                X_batch, y_batch = fetch_batch(epoch, batch_index, batch_size)
+                if batch_index % 10 == 0:
+                    summary_str = mse_summary.eval(feed_dict={X: X_batch, y: y_batch})
+                    step = epoch * n_batches + batch_index
+                    file_writer.add_summary(summary_str, step)
+                sess.run(training_op, feed_dict={X: X_batch, y: y_batch})
+
+        best_theta = theta.eval()
+
+    file_writer.flush()
+    file_writer.close()
+    print("Best theta:\n", best_theta)
+    print(error.op.name)
+    print(mse.op.name)
+    # tensorflow 会自动将相同名字的变量名加上_n
+    # a1 = tf.Variable(0, name="a")  # name == "a"
+    # a2 = tf.Variable(0, name="a")  # name == "a_1"
+    # with tf.name_scope("param"):  # name == "param"
+    #     a3 = tf.Variable(0, name="a")  # name == "param/a"
+    # with tf.name_scope("param"):  # name == "param_1"
+    #     a4 = tf.Variable(0, name="a")  # name == "param_1/a"
+    # for node in (a1, a2, a3, a4):
+    #     print(node.op.name)
+
+'''Sharing Variables'''
+def sharing_variables():
+    reset_graph()
+    n_features = 3
+
+    def relu(X):
+        threshold = tf.get_variable("threshold", shape=(),
+                                    initializer=tf.constant_initializer(0.0))
+        w_shape = (int(X.get_shape()[1]), 1)  # not shown in the book
+        w = tf.Variable(tf.random_normal(w_shape), name="weights")  # not shown
+        b = tf.Variable(0.0, name="bias")  # not shown
+        z = tf.add(tf.matmul(X, w), b, name="z")  # not shown
+        return tf.maximum(z, threshold, name="max")
+
+    X = tf.placeholder(tf.float32, shape=(None, n_features), name="X")
+    relus = []
+    for relu_index in range(5):
+        with tf.variable_scope("relu", reuse=(relu_index >= 1)) as scope:
+            relus.append(relu(X))
+            output = tf.add_n(relus, name="output")
+    print(output)
+    now = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    root_logdir = "D:/Document/tf_logs"
+    logdir = "{}/run-{}/".format(root_logdir, now)
+    file_writer = tf.summary.FileWriter(logdir, tf.get_default_graph())
+    file_writer.close()
+
+
 if __name__ == "__main__":
-    # run一个graph
-    # create_graph_and_run_in_session()
-    # graph管理
-    # graph_manage()
-    # 求解一个LR模型
-    # lr_train()
-    # 模型存储
-    # save_load_model()
-    tensor_board()
+    # create_graph_and_run_in_session() # run一个graph
+    # graph_manage() # graph管理
+    # lr_train() # 求解一个LR模型
+    # save_load_model() # 模型存储
+    # tensor_board()
+    # name_scopes()
+    sharing_variables()
