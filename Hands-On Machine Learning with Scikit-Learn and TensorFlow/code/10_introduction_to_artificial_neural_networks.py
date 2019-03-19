@@ -208,6 +208,7 @@ def train_model_for_mnist_with_plain_api():
     X = tf.placeholder(tf.float32, shape=(None, n_inputs), name="X")
     y = tf.placeholder(tf.int32, shape=(None), name="y")
 
+    '''创建一层神经网络'''
     def neuron_layer(X, n_neurons, name, activation=None):
         with tf.name_scope(name):
             n_inputs = int(X.get_shape()[1])
@@ -229,8 +230,7 @@ def train_model_for_mnist_with_plain_api():
         logits = neuron_layer(hidden2, n_outputs, name="outputs")
 
     with tf.name_scope("loss"):
-        xentropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y,
-                                                                  logits=logits)
+        xentropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y, logits=logits)
         loss = tf.reduce_mean(xentropy, name="loss")
 
     learning_rate = 0.01
@@ -265,7 +265,7 @@ def train_model_for_mnist_with_plain_api():
             acc_val = accuracy.eval(feed_dict={X: X_valid, y: y_valid})
             print(epoch, "Batch accuracy:", acc_batch, "Val accuracy:", acc_val)
 
-        save_path = saver.save(sess, "./my_model_final.ckpt")
+        print(saver.save(sess, "./my_model_final.ckpt"))
 
     with tf.Session() as sess:
         saver.restore(sess, "./my_model_final.ckpt")  # or better, use save_path
@@ -275,9 +275,6 @@ def train_model_for_mnist_with_plain_api():
 
     print("Predicted classes:", y_pred)
     print("Actual classes:   ", y_test[:20])
-
-
-
 
 if __name__ == "__main__":
     print('Hello, Welcome to My World')
