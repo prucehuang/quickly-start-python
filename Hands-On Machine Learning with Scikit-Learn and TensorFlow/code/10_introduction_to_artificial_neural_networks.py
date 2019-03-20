@@ -14,6 +14,7 @@ import tensorflow as tf
 from sklearn.datasets import load_iris
 from sklearn.linear_model import Perceptron
 from matplotlib.colors import ListedColormap
+from datetime import datetime
 
 # to make this notebook's output stable across runs
 def reset_graph(seed=42):
@@ -248,6 +249,9 @@ def train_model_for_mnist_with_plain_api():
 
     n_epochs = 40
     batch_size = 50
+    now = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    root_logdir = "D:/Document/tf_logs"
+    logdir = "{}/run-{}/".format(root_logdir, now)
 
     def shuffle_batch(X, y, batch_size):
         rnd_idx = np.random.permutation(len(X))
@@ -265,10 +269,10 @@ def train_model_for_mnist_with_plain_api():
             acc_val = accuracy.eval(feed_dict={X: X_valid, y: y_valid})
             print(epoch, "Batch accuracy:", acc_batch, "Val accuracy:", acc_val)
 
-        print(saver.save(sess, "./my_model_final.ckpt"))
+        print(saver.save(sess, logdir+"/my_model_final.ckpt"))
 
     with tf.Session() as sess:
-        saver.restore(sess, "./my_model_final.ckpt")  # or better, use save_path
+        saver.restore(sess, logdir+"/my_model_final.ckpt")  # or better, use save_path
         X_new_scaled = X_test[:20]
         Z = logits.eval(feed_dict={X: X_new_scaled})
         y_pred = np.argmax(Z, axis=1)
@@ -276,9 +280,13 @@ def train_model_for_mnist_with_plain_api():
     print("Predicted classes:", y_pred)
     print("Actual classes:   ", y_test[:20])
 
+    file_writer = tf.summary.FileWriter(logdir, tf.get_default_graph())
+    file_writer.close()
+
 if __name__ == "__main__":
     print('Hello, Welcome to My World')
     # high_level_percetron()
     # plot_activation_functions()
     # plot_2_layer_network()
     # train_model_for_mnist_with_estimator_api()
+    train_model_for_mnist_with_plain_api()
