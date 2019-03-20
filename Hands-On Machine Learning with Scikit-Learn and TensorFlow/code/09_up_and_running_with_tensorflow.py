@@ -292,23 +292,23 @@ def save_load_model():
             for epoch in range(n_epochs):
                 if epoch % 100 == 0:
                     print("Epoch", epoch, "MSE =", mse.eval())
-                    print(saver.save(sess, "D:/Document/my_model.ckpt"))
+                    print(saver.save(sess, "D:/my_model.ckpt"))
                 sess.run(training_op)
             best_theta = theta.eval()
-            save_path = saver.save(sess, "D:/Document/my_model_final.ckpt")
+            save_path = saver.save(sess, "D:/my_model_final.ckpt")
             print(save_path, '\n', best_theta)
     elif esave=='load':
         with tf.Session() as sess:
-            saver.restore(sess, "D:/Document/my_model_final.ckpt")
+            saver.restore(sess, "D:/my_model_final.ckpt")
             best_theta_restored = theta.eval()
             print(best_theta_restored)
     elif esave=='restore':
         reset_graph()
         # notice that we start with an empty graph.
-        saver = tf.train.import_meta_graph("D:/Document/my_model_final.ckpt.meta")  # this loads the graph structure
+        saver = tf.train.import_meta_graph("D:/my_model_final.ckpt.meta")  # this loads the graph structure
         theta = tf.get_default_graph().get_tensor_by_name("theta:0")
         with tf.Session() as sess:
-            saver.restore(sess, "D:/Document/my_model_final.ckpt")  # this restores the graph's state
+            saver.restore(sess, "D:/my_model_final.ckpt")  # this restores the graph's state
             best_theta_restored = theta.eval()
             print(best_theta_restored)
 
@@ -319,7 +319,7 @@ def save_load_model():
 '''
 def tensor_board():
     reset_graph()
-    root_logdir = "D:/Document/tf_logs"
+    root_logdir = "D:/tf_logs"
     now = datetime.utcnow().strftime("%Y%m%d%H%M%S")
     logdir = "{}/run-{}/".format(root_logdir, now)
 
@@ -381,7 +381,7 @@ def name_scopes():
     scaled_iris_data_plus_bias = np.c_[np.ones((m, 1)), scaled_iris_data]
 
     now = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-    root_logdir = "D:/Document/tf_logs"
+    root_logdir = "D:/tf_logs"
     logdir = "{}/run-{}/".format(root_logdir, now)
 
     X = tf.placeholder(tf.float32, shape=(None, n + 1), name="X")
@@ -458,7 +458,7 @@ def sharing_variables():
             output = tf.add_n(relus, name="output")
     print(output)
     now = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-    root_logdir = "D:/Document/tf_logs"
+    root_logdir = "D:/tf_logs"
     logdir = "{}/run-{}/".format(root_logdir, now)
     file_writer = tf.summary.FileWriter(logdir, tf.get_default_graph())
     file_writer.close()
@@ -468,7 +468,7 @@ if __name__ == "__main__":
     # create_graph_and_run_in_session() # run一个graph
     # graph_manage() # graph管理
     # lr_train() # 求解一个LR模型
-    # save_load_model() # 模型存储
-    # tensor_board()
+    save_load_model() # 模型存储
+    tensor_board()
     # name_scopes()
-    sharing_variables()
+    # sharing_variables()

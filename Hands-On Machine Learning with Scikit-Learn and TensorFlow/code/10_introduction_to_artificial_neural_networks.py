@@ -6,6 +6,7 @@
 author: prucehuang 
  email: 1756983926@qq.com
   date: 2019/03/18
+  无法加载mnist的处理方法 https://blog.csdn.net/qq_37587850/article/details/83574615
 """
 # Common imports
 import numpy as np
@@ -204,7 +205,14 @@ def train_model_for_mnist_with_plain_api():
     n_hidden1 = 300
     n_hidden2 = 100
     n_outputs = 10
+    n_epochs = 40
+    batch_size = 50
+    learning_rate = 0.01
     reset_graph()
+    now = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    root_logdir = "D:/tf_logs"
+    logdir = "{}/run-{}/".format(root_logdir, now)
+    model_logdir = logdir+"my_model_final.ckpt"
 
     X = tf.placeholder(tf.float32, shape=(None, n_inputs), name="X")
     y = tf.placeholder(tf.int32, shape=(None), name="y")
@@ -223,18 +231,21 @@ def train_model_for_mnist_with_plain_api():
             else:
                 return Z
 
+    '''方法一，使用自定义函数'''
+    # with tf.name_scope("dnn"):
+    #     hidden1 = neuron_layer(X, n_hidden1, name="hidden1", activation=tf.nn.relu)
+    #     hidden2 = neuron_layer(hidden1, n_hidden2, name="hidden2", activation=tf.nn.relu)
+    #     logits = neuron_layer(hidden2, n_outputs, name="outputs")
+    '''方法二，使用全连接函数'''
     with tf.name_scope("dnn"):
-        hidden1 = neuron_layer(X, n_hidden1, name="hidden1",
-                               activation=tf.nn.relu)
-        hidden2 = neuron_layer(hidden1, n_hidden2, name="hidden2",
-                               activation=tf.nn.relu)
-        logits = neuron_layer(hidden2, n_outputs, name="outputs")
+        hidden1 = tf.layers.dense(X, n_hidden1, name="hidden1", activation=tf.nn.relu)
+        hidden2 = tf.layers.dense(hidden1, n_hidden2, name="hidden2", activation=tf.nn.relu)
+        logits = tf.layers.dense(hidden2, n_outputs, name="outputs")
+        y_proba = tf.nn.softmax(logits)
 
     with tf.name_scope("loss"):
         xentropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y, logits=logits)
         loss = tf.reduce_mean(xentropy, name="loss")
-
-    learning_rate = 0.01
 
     with tf.name_scope("train"):
         optimizer = tf.train.GradientDescentOptimizer(learning_rate)
@@ -246,13 +257,6 @@ def train_model_for_mnist_with_plain_api():
 
     init = tf.global_variables_initializer()
     saver = tf.train.Saver()
-
-    n_epochs = 40
-    batch_size = 50
-    now = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-    root_logdir = "D:/Document/tf_logs"
-    logdir = "{}/run-{}/".format(root_logdir, now)
-
     def shuffle_batch(X, y, batch_size):
         rnd_idx = np.random.permutation(len(X))
         n_batches = len(X) // batch_size
@@ -268,15 +272,13 @@ def train_model_for_mnist_with_plain_api():
             acc_batch = accuracy.eval(feed_dict={X: X_batch, y: y_batch})
             acc_val = accuracy.eval(feed_dict={X: X_valid, y: y_valid})
             print(epoch, "Batch accuracy:", acc_batch, "Val accuracy:", acc_val)
-
-        print(saver.save(sess, logdir+"/my_model_final.ckpt"))
+        print(saver.save(sess, model_logdir))
 
     with tf.Session() as sess:
-        saver.restore(sess, logdir+"/my_model_final.ckpt")  # or better, use save_path
+        saver.restore(sess, model_logdir)  # or better, use save_path
         X_new_scaled = X_test[:20]
         Z = logits.eval(feed_dict={X: X_new_scaled})
         y_pred = np.argmax(Z, axis=1)
-
     print("Predicted classes:", y_pred)
     print("Actual classes:   ", y_test[:20])
 
