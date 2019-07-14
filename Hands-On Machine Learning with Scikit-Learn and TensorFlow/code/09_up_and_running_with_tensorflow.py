@@ -41,7 +41,7 @@ def save_fig(fig_id, tight_layout=True):
     plt.savefig(path, format='png', dpi=300)
 
 '''
-    TensorFlow Hello Worldt
+    TensorFlow Hello World
 '''
 def create_graph_and_run_in_session():
     x = tf.Variable(3, name="x")
