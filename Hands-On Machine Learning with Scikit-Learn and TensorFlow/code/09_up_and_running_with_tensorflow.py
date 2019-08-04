@@ -467,7 +467,7 @@ def sharing_variables():
 if __name__ == "__main__":
     # create_graph_and_run_in_session() # run一个graph
     # graph_manage() # graph管理
-    # lr_train() # 求解一个LR模型
+    lr_train() # 求解一个LR模型
     save_load_model() # 模型存储
     tensor_board()
     # name_scopes()
