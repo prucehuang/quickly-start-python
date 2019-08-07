@@ -12,7 +12,7 @@ author: prucehuang
 
 import sys, os
 for i in range(len(sys.path)):
-    sys.path[i] = sys.path[i].split(' ')[0]
+    sys.path[i] = sys.path[i].split('\. ')[0]
 
 import matplotlib.pyplot as plt
 import numpy as  np
